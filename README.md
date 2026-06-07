@@ -34,6 +34,23 @@ and splits the result back — no fitness, no selection. **Seed replicator** dro
 the palindrome replicator into the soup; watch the replicator's color overtake
 the grid. Color shows similarity to the replicator (or a content hash).
 
+**Mode C — Two-IP soup.** The same soup, but each concatenated pair is treated as
+a 128-cell **ring** with **two** instruction pointers — one per program (starting
+at positions 0 and 64), each with its own heads. Both run forward and wrap past the
+end, alternating one step at a time, so either program can act on the other (the
+setup is symmetric, so pairing order is irrelevant). With no "run off the end" to
+stop them, reactions end at an adjustable **step cap** — the key control: near
+300–350 the seeded palindrome briefly takes over and is then displaced; higher
+(e.g. 1024) the seed never catches on, yet *novel* self-replicators emerge and
+persist. Unlike Mode B, no seeded lineage stays dominant — emergence tends to win.
+
+Both soups report, beyond the seed-template match (`replicators` / `avg seed
+match`): **entropy** (normalized Shannon entropy of 4-grams across the soup, a
+template-free order signal that falls as any motif spreads), **self-copy rate** (a
+template-free, mirror-aware functional test — the fraction of sampled programs that
+copy a ≥12-byte run of themselves into a fresh random partner, which catches novel
+replicators the seed template misses), and a sparkline of these over time.
+
 ### Semantics (faithful to cubff)
 Command bytes: `<`60 `>`62 `{`123 `}`125 `-`45 `+`43 `.`46 `,`44 `[`91 `]`93;
 every other byte is a no-op. Loops test `tape[head0]`. Brackets are matched

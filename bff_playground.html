@@ -85,6 +85,7 @@
   <div class="tabs">
     <div class="tab active" data-tab="A">Tape debugger</div>
     <div class="tab" data-tab="B">Primordial soup</div>
+    <div class="tab" data-tab="C">Two-IP soup</div>
   </div>
 
   <!-- ============ MODE A ============ -->
@@ -164,15 +165,89 @@
         <div class="soupside">
           <div class="stats">
             <div class="stat"><div class="k">epoch</div><div class="v" id="bEpoch">0</div></div>
-            <div class="stat"><div class="k">avg replicator match</div><div class="v" id="bAvg">—</div></div>
-            <div class="stat"><div class="k">replicators</div><div class="v" id="bRep">0%</div></div>
+            <div class="stat"><div class="k">replicators (seed)</div><div class="v" id="bRep">0%</div></div>
+            <div class="stat"><div class="k">self-copy rate</div><div class="v" id="bFunc">—</div></div>
+            <div class="stat"><div class="k">entropy</div><div class="v" id="bEnt">—</div></div>
+            <div class="stat"><div class="k">avg seed match</div><div class="v" id="bAvg">—</div></div>
             <div class="stat"><div class="k">unique tapes</div><div class="v" id="bUniq">—</div></div>
             <div class="stat"><div class="k">largest cluster</div><div class="v" id="bClust">—</div></div>
           </div>
-          <div class="scale" id="scaleSim">
+          <canvas id="sparkB" width="300" height="60" style="margin-top:12px;border:1px solid var(--border);border-radius:6px;width:100%;max-width:300px;height:60px"></canvas>
+          <div class="legend" style="margin-top:6px">
+            <span><b style="color:#5b9dff">entropy</b></span>
+            <span><b style="color:#3ddc84">self-copy</b></span>
+            <span><b style="color:#ffae42">seed match</b></span>
+            <span style="color:var(--muted)">over time</span>
+          </div>
+          <div class="scale" id="scaleSim" style="margin-top:12px">
             low<span class="grad" style="background:linear-gradient(90deg,#13182a,#2a3b6b,#caa23c,#ffb454)"></span>high
           </div>
           <div class="scale hide" id="scaleHash">color = hash of program bytes (same color ⇒ identical program)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODE C — two-IP soup ============ -->
+  <div id="paneC" class="hide">
+    <div class="panel">
+      <div class="bar">
+        <button id="cRun" class="primary">Start</button>
+        <button id="cPause" disabled>Pause</button>
+        <button id="cStepE">Step epoch</button>
+        <button id="cReset">Reset</button>
+        <button id="cSeed" class="seed">Seed replicator</button>
+      </div>
+      <div class="bar">
+        <label class="fld">speed <input id="cSpeed" type="range" min="1" max="100" value="45" style="width:130px"></label>
+        <label class="fld">mutation % <input id="cMut" type="number" value="0.02" min="0" max="5" step="0.01" style="width:70px"></label>
+        <label class="fld">step cap <input id="cCap" type="number" value="320" min="16" max="8192" step="16" style="width:74px"></label>
+        <span class="pill" id="colorToggleC">
+          <button data-color="sim" class="on">replicator similarity</button>
+          <button data-color="hash">content hash</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Two-IP soup &nbsp;<span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">both programs run · one IP each · forward on a 128-cell ring</span></h2>
+      <p style="color:var(--muted);font-size:12.5px;line-height:1.55;margin:0 0 12px;max-width:730px">
+        Each pair is glued into a 128-cell <b>ring</b> and given <b>two</b> instruction pointers — one on
+        each program (positions 0 and 64), each with its own read/write heads. Both move forward and
+        <b>wrap</b> past the end, alternating one step at a time, so either program can copy itself into
+        the other (order is irrelevant by symmetry). With no “run off the end” to halt them, a reaction
+        ends only at the <b>step cap</b> — the key dial. Seed a replicator and watch the sparkline:
+        <br>• around <b>300–350</b> the <i>seeded</i> palindrome briefly takes over (amber spikes), then is
+        displaced — seed match crashes toward 0 and entropy collapses while <b>self-copy</b> stays high,
+        because emergent <i>novel</i> replicators (invisible to the seed template) outcompete it;
+        <br>• higher (e.g. <b>1024</b>) the seed never gets a foothold, yet novel replicators still emerge
+        and <i>persist</i> (self-copy ~85–90%).
+        <br>Unlike the single-IP soup — where the seeded lineage takes over and stays — here emergence
+        tends to win.
+      </p>
+      <div class="soupgrid">
+        <canvas id="soupC" width="400" height="400"></canvas>
+        <div class="soupside">
+          <div class="stats">
+            <div class="stat"><div class="k">epoch</div><div class="v" id="cEpoch">0</div></div>
+            <div class="stat"><div class="k">replicators (seed)</div><div class="v" id="cRep">0%</div></div>
+            <div class="stat"><div class="k">self-copy rate</div><div class="v" id="cFunc">—</div></div>
+            <div class="stat"><div class="k">entropy</div><div class="v" id="cEnt">—</div></div>
+            <div class="stat"><div class="k">avg seed match</div><div class="v" id="cAvg">—</div></div>
+            <div class="stat"><div class="k">unique tapes</div><div class="v" id="cUniq">—</div></div>
+            <div class="stat"><div class="k">largest cluster</div><div class="v" id="cClust">—</div></div>
+          </div>
+          <canvas id="sparkC" width="300" height="60" style="margin-top:12px;border:1px solid var(--border);border-radius:6px;width:100%;max-width:300px;height:60px"></canvas>
+          <div class="legend" style="margin-top:6px">
+            <span><b style="color:#5b9dff">entropy</b></span>
+            <span><b style="color:#3ddc84">self-copy</b></span>
+            <span><b style="color:#ffae42">seed match</b></span>
+            <span style="color:var(--muted)">over time</span>
+          </div>
+          <div class="scale" id="scaleSimC" style="margin-top:12px">
+            low<span class="grad" style="background:linear-gradient(90deg,#13182a,#2a3b6b,#caa23c,#ffb454)"></span>high
+          </div>
+          <div class="scale hide" id="scaleHashC">color = hash of program bytes (same color ⇒ identical program)</div>
         </div>
       </div>
     </div>
@@ -255,6 +330,53 @@ function bffRun(tape, ip, head0, head1){
     if(halted) break;
     ip++; steps++;
     if(ip<0||ip>=N) break;
+  }
+}
+
+// Two-IP variant (used by the two-IP soup). The concatenated pair is a 128-cell
+// RING: one IP per program (starting on each, at 0 and 64), each with its own
+// read/write heads. Both step forward and wrap past the end, alternating one
+// instruction each, so either program can copy itself into the other (order is
+// irrelevant by symmetry). With no "run off the end" to stop them, the reaction
+// ends only when both IPs jam on a bad bracket or the shared step cap is reached.
+function bffReactTwoIP(t, cap){
+  const N=t.length;
+  let ipA=0, h0A=0, h1A=0, deadA=false;
+  let ipB=64, h0B=64, h1B=64, deadB=false;
+  let steps=0;
+  while(steps<cap && !(deadA&&deadB)){
+    if(!deadA){
+      const op=t[ipA];
+      switch(op){
+        case 60: h0A=(h0A-1+N)%N; break;
+        case 62: h0A=(h0A+1)%N;   break;
+        case 123:h1A=(h1A-1+N)%N; break;
+        case 125:h1A=(h1A+1)%N;   break;
+        case 45: t[h0A]=(t[h0A]-1)&255; break;
+        case 43: t[h0A]=(t[h0A]+1)&255; break;
+        case 46: t[h1A]=t[h0A]; break;
+        case 44: t[h0A]=t[h1A]; break;
+        case 91: if(t[h0A]===0){ let d=1,p=ipA+1; for(;p<N&&d>0;p++){if(t[p]===93)d--;else if(t[p]===91)d++;} p--; if(d!==0)deadA=true; else ipA=p; } break;
+        case 93: if(t[h0A]!==0){ let d=1,p=ipA-1; for(;p>=0&&d>0;p--){if(t[p]===93)d++;else if(t[p]===91)d--;} p++; if(d!==0)deadA=true; else ipA=p; } break;
+      }
+      if(!deadA){ ipA++; if(ipA>=N) ipA=0; steps++; }
+    }
+    if(!deadB){
+      const op=t[ipB];
+      switch(op){
+        case 60: h0B=(h0B-1+N)%N; break;
+        case 62: h0B=(h0B+1)%N;   break;
+        case 123:h1B=(h1B-1+N)%N; break;
+        case 125:h1B=(h1B+1)%N;   break;
+        case 45: t[h0B]=(t[h0B]-1)&255; break;
+        case 43: t[h0B]=(t[h0B]+1)&255; break;
+        case 46: t[h1B]=t[h0B]; break;
+        case 44: t[h0B]=t[h1B]; break;
+        case 91: if(t[h0B]===0){ let d=1,p=ipB+1; for(;p<N&&d>0;p++){if(t[p]===93)d--;else if(t[p]===91)d++;} p--; if(d!==0)deadB=true; else ipB=p; } break;
+        case 93: if(t[h0B]!==0){ let d=1,p=ipB-1; for(;p>=0&&d>0;p--){if(t[p]===93)d++;else if(t[p]===91)d--;} p++; if(d!==0)deadB=true; else ipB=p; } break;
+      }
+      if(!deadB){ ipB++; if(ipB>=N) ipB=0; steps++; }
+    }
   }
 }
 
@@ -393,55 +515,24 @@ document.querySelectorAll('.preset').forEach(btn=>{
 });
 
 //================================================================
-// MODE B — Primordial soup
+// MODES B & C — Primordial soups
+// One shared engine (makeSoup); the tabs differ only in the reaction
+// applied to each concatenated pair:
+//   B — one IP from position 0; the partner program is passive.
+//   C — one IP per program on a 128-cell ring (forward + wrap),
+//       alternating steps, ended by the step cap.
 //================================================================
 const GRID=40, POP=GRID*GRID, PROG=64, CELLPX=10;
 const REPB = Array.from(REPLICATOR).map(c=>c.charCodeAt(0));
-let soup=[], epoch=0, bRunning=false, bRaf=null;
-const soupCv=$('soup'), sctx=soupCv.getContext('2d');
-let colorMode='sim';
+const FUNC_SAMPLE=100, FUNC_L=12, SPARK_MAX=240;
 
 function randTape(){ const t=new Uint8Array(PROG); for(let i=0;i<PROG;i++) t[i]=(Math.random()*256)|0; return t; }
-function soupInit(){
-  soup=new Array(POP); for(let i=0;i<POP;i++) soup[i]=randTape();
-  epoch=0;
-}
-function mkReplicator(){
-  const t=randTape();                       // junk tail (as in the paper's soup)
-  for(let i=0;i<REPB.length;i++) t[i]=REPB[i];
-  return t;
-}
-function seedReplicator(){
-  // seed ~20% of the population so takeover is reliably demonstrable
-  const n=Math.floor(POP*0.20);
-  const used=new Set();
-  for(let k=0;k<n;k++){
-    let i; do{ i=(Math.random()*POP)|0; }while(used.has(i)); used.add(i);
-    soup[i]=mkReplicator();
-  }
-  drawSoup(); updateStats();
+function mkReplicator(){                       // replicator core + junk tail (as in the paper's soup)
+  const t=randTape(); for(let i=0;i<REPB.length;i++) t[i]=REPB[i]; return t;
 }
 
-// one epoch: shuffle, pair adjacent, run concatenation, split back, mutate
-function soupEpoch(){
-  const idx=new Int32Array(POP); for(let i=0;i<POP;i++) idx[i]=i;
-  for(let i=POP-1;i>0;i--){ const j=(Math.random()*(i+1))|0; const t=idx[i];idx[i]=idx[j];idx[j]=t; }
-  const mut=(parseFloat($('bMut').value)||0)/100;
-  const cat=new Uint8Array(128);
-  for(let k=0;k+1<POP;k+=2){
-    const a=idx[k], b=idx[k+1];
-    cat.set(soup[a],0); cat.set(soup[b],64);
-    bffRun(cat,0,0,0);
-    soup[a]=cat.slice(0,64); soup[b]=cat.slice(64,128);
-    if(mut){
-      if(Math.random()<mut*PROG) soup[a][(Math.random()*PROG)|0]=(Math.random()*256)|0;
-      if(Math.random()<mut*PROG) soup[b][(Math.random()*PROG)|0]=(Math.random()*256)|0;
-    }
-  }
-  epoch++;
-}
-
-// best-alignment fraction of replicator bytes present in a program
+// ---- metrics ----------------------------------------------------
+// best-alignment fraction of the SEEDED replicator's bytes in a program
 function repSim(t){
   let best=0;
   for(let off=0; off+REPB.length<=PROG; off++){
@@ -457,67 +548,181 @@ function hashTape(t){
 }
 function simColor(s){
   // dark navy (empty) -> bright amber (replicator)
-  const h = 222 - s*190;          // 222 -> ~32
-  const sat = 35 + s*60;          // 35% -> 95%
-  const lig = 9 + s*52;           // 9%  -> 61%
+  const h=222-s*190, sat=35+s*60, lig=9+s*52;
   return `hsl(${h},${sat}%,${lig}%)`;
 }
-
-function drawSoup(){
-  for(let y=0;y<GRID;y++){
-    for(let x=0;x<GRID;x++){
-      const t=soup[y*GRID+x];
-      let col;
-      if(colorMode==='sim'){ col=simColor(repSim(t)); }
-      else { const h=hashTape(t); col=`hsl(${h%360},65%,${30+(h>>9)%35}%)`; }
-      sctx.fillStyle=col;
-      sctx.fillRect(x*CELLPX, y*CELLPX, CELLPX-1, CELLPX-1);
+// template-free ORDER: normalized Shannon entropy of 4-grams over the whole soup
+// (1 = max disorder / random; → 0 as a motif spreads). 4 bytes pack into one int.
+function gramEntropy(soup){
+  const cnt=new Map(); let M=0;
+  for(let i=0;i<POP;i++){
+    const t=soup[i];
+    for(let j=0;j+4<=PROG;j++){
+      const key=((t[j]<<24)|(t[j+1]<<16)|(t[j+2]<<8)|t[j+3])>>>0;
+      cnt.set(key,(cnt.get(key)||0)+1); M++;
     }
   }
+  let H=0; for(const v of cnt.values()){ const p=v/M; H-=p*Math.log2(p); }
+  return H/Math.log2(M);            // normalize by the max entropy possible for M samples
 }
-
-function updateStats(){
-  let sum=0, reps=0;
-  const counts=new Map();
-  for(let i=0;i<POP;i++){
-    const s=repSim(soup[i]); sum+=s; if(s>=0.9) reps++;
-    const h=hashTape(soup[i]); counts.set(h,(counts.get(h)||0)+1);
+// BF-mirror of a program (reverse + swap paired brackets/heads). Replicators stamp
+// mirror images, so the functional test must recognize these too.
+const MIRROR_SWAP={60:62,62:60,123:125,125:123,91:93,93:91};
+function mirrorProg(P){
+  const m=new Uint8Array(PROG);
+  for(let i=0;i<PROG;i++){ const b=P[PROG-1-i]; m[i]=MIRROR_SWAP[b]!==undefined?MIRROR_SWAP[b]:b; }
+  return m;
+}
+// template-free REPLICATION: fraction of programs that copy a contiguous run of
+// >=FUNC_L of their own bytes (forward OR mirrored) into a FRESH random partner.
+// Catches novel replicators the seed template can't see. Non-destructive.
+function funcCopyRate(soup, react){
+  let rep=0; const cat=new Uint8Array(128);
+  for(let s=0;s<FUNC_SAMPLE;s++){
+    const P=soup[(Math.random()*POP)|0], R=randTape();
+    cat.set(P,0); cat.set(R,64);
+    const grams=new Set(), Pm=mirrorProg(P);
+    for(const src of [P,Pm]) for(let j=0;j+FUNC_L<=PROG;j++){
+      let key=''; for(let m=0;m<FUNC_L;m++) key+=String.fromCharCode(src[j+m]); grams.add(key);
+    }
+    const had=new Set();              // discount runs the random partner already had (≈never)
+    for(let j=0;j+FUNC_L<=PROG;j++){
+      let key=''; for(let m=0;m<FUNC_L;m++) key+=String.fromCharCode(R[j+m]); if(grams.has(key)) had.add(key);
+    }
+    react(cat);
+    let copied=false;
+    for(let j=0;j+FUNC_L<=PROG && !copied;j++){
+      let key=''; for(let m=0;m<FUNC_L;m++) key+=String.fromCharCode(cat[64+j+m]);
+      if(grams.has(key)&&!had.has(key)) copied=true;
+    }
+    if(copied) rep++;
   }
-  let maxc=0; for(const v of counts.values()) if(v>maxc) maxc=v;
-  $('bEpoch').textContent=epoch;
-  $('bAvg').textContent=(sum/POP*100).toFixed(0)+'%';
-  $('bRep').textContent=(reps/POP*100).toFixed(0)+'%';
-  $('bUniq').textContent=counts.size;
-  $('bClust').textContent=(maxc/POP*100).toFixed(0)+'%';
-  const avgEl=$('bAvg'); avgEl.style.color = (sum/POP)>0.4 ? 'var(--good)' : 'var(--text)';
+  return rep/FUNC_SAMPLE;
 }
 
-function bLoop(){
-  if(!bRunning) return;
-  const sp=parseInt($('bSpeed').value);
-  const budget = 4 + sp*0.22;                 // ms of reaction work per frame
-  const t0=performance.now();
-  do { soupEpoch(); } while(performance.now()-t0 < budget);
-  drawSoup(); updateStats();
-  bRaf=requestAnimationFrame(bLoop);
-}
-function bStart(){ if(bRunning)return; bRunning=true; $('bRun').disabled=true; $('bPause').disabled=false; bRaf=requestAnimationFrame(bLoop); }
-function bStop(){ bRunning=false; if(bRaf)cancelAnimationFrame(bRaf); $('bRun').disabled=false; $('bPause').disabled=true; }
-function bReset(){ bStop(); soupInit(); drawSoup(); updateStats(); }
+// ---- soup engine (one instance per soup tab) --------------------
+function makeSoup(cfg){
+  const ctx=cfg.canvas.getContext('2d');
+  const sctx=cfg.spark.getContext('2d');
+  let soup=[], epoch=0, running=false, raf=null, colorMode='sim';
+  let entHist=[], funcHist=[], seedHist=[];
 
-$('bRun').onclick=bStart;
-$('bPause').onclick=bStop;
-$('bStepE').onclick=()=>{ if(!bRunning){ soupEpoch(); drawSoup(); updateStats(); } };
-$('bReset').onclick=bReset;
-$('bSeed').onclick=seedReplicator;
-document.querySelectorAll('#colorToggle button').forEach(btn=>{
-  btn.onclick=()=>{
-    document.querySelectorAll('#colorToggle button').forEach(b=>b.classList.remove('on'));
-    btn.classList.add('on'); colorMode=btn.dataset.color;
-    $('scaleSim').classList.toggle('hide',colorMode!=='sim');
-    $('scaleHash').classList.toggle('hide',colorMode!=='hash');
-    drawSoup();
-  };
+  function init(){ soup=new Array(POP); for(let i=0;i<POP;i++) soup[i]=randTape(); epoch=0; entHist=[]; funcHist=[]; seedHist=[]; }
+  function seed(){
+    const n=Math.floor(POP*0.20), used=new Set();   // ~20% so takeover is reliably demonstrable
+    for(let k=0;k<n;k++){ let i; do{ i=(Math.random()*POP)|0; }while(used.has(i)); used.add(i); soup[i]=mkReplicator(); }
+    draw(); stats();
+  }
+  // one epoch: shuffle, pair adjacent, react, split back, mutate
+  function doEpoch(){
+    const idx=new Int32Array(POP); for(let i=0;i<POP;i++) idx[i]=i;
+    for(let i=POP-1;i>0;i--){ const j=(Math.random()*(i+1))|0; const t=idx[i];idx[i]=idx[j];idx[j]=t; }
+    const mut=(parseFloat(cfg.mut.value)||0)/100;
+    const cat=new Uint8Array(128);
+    for(let k=0;k+1<POP;k+=2){
+      const a=idx[k], b=idx[k+1];
+      cat.set(soup[a],0); cat.set(soup[b],64);
+      cfg.react(cat);
+      soup[a]=cat.slice(0,64); soup[b]=cat.slice(64,128);
+      if(mut){
+        if(Math.random()<mut*PROG) soup[a][(Math.random()*PROG)|0]=(Math.random()*256)|0;
+        if(Math.random()<mut*PROG) soup[b][(Math.random()*PROG)|0]=(Math.random()*256)|0;
+      }
+    }
+    epoch++;
+  }
+  function draw(){
+    for(let y=0;y<GRID;y++) for(let x=0;x<GRID;x++){
+      const t=soup[y*GRID+x]; let col;
+      if(colorMode==='sim') col=simColor(repSim(t));
+      else { const h=hashTape(t); col=`hsl(${h%360},65%,${30+(h>>9)%35}%)`; }
+      ctx.fillStyle=col; ctx.fillRect(x*CELLPX, y*CELLPX, CELLPX-1, CELLPX-1);
+    }
+  }
+  function drawSpark(){
+    const W=cfg.spark.width, H=cfg.spark.height;
+    sctx.fillStyle='#0a0c10'; sctx.fillRect(0,0,W,H);
+    const plot=(hist,color)=>{
+      if(hist.length<2) return;
+      sctx.strokeStyle=color; sctx.lineWidth=1.5; sctx.beginPath();
+      for(let i=0;i<hist.length;i++){
+        const x=(i/(SPARK_MAX-1))*W, y=H-Math.max(0,Math.min(1,hist[i]))*(H-2)-1;
+        i?sctx.lineTo(x,y):sctx.moveTo(x,y);
+      }
+      sctx.stroke();
+    };
+    plot(entHist,'#5b9dff');      // entropy
+    plot(funcHist,'#3ddc84');     // self-copy rate
+    plot(seedHist,'#ffae42');     // seed match
+  }
+  function stats(){
+    let sum=0, reps=0; const counts=new Map();
+    for(let i=0;i<POP;i++){
+      const s=repSim(soup[i]); sum+=s; if(s>=0.9) reps++;
+      const h=hashTape(soup[i]); counts.set(h,(counts.get(h)||0)+1);
+    }
+    let maxc=0; for(const v of counts.values()) if(v>maxc) maxc=v;
+    const ent=gramEntropy(soup), func=funcCopyRate(soup, cfg.react);
+    entHist.push(ent); funcHist.push(func); seedHist.push(reps/POP);
+    if(entHist.length>SPARK_MAX){ entHist.shift(); funcHist.shift(); seedHist.shift(); }
+    cfg.epoch.textContent=epoch;
+    cfg.rep.textContent=(reps/POP*100).toFixed(0)+'%';
+    cfg.func.textContent=(func*100).toFixed(0)+'%';
+    cfg.ent.textContent=ent.toFixed(2);
+    cfg.avg.textContent=(sum/POP*100).toFixed(0)+'%';
+    cfg.uniq.textContent=counts.size;
+    cfg.clust.textContent=(maxc/POP*100).toFixed(0)+'%';
+    cfg.avg.style.color = (sum/POP)>0.4 ? 'var(--good)' : 'var(--text)';
+    cfg.func.style.color = func>0.4 ? 'var(--good)' : 'var(--text)';
+    drawSpark();
+  }
+  function loop(){
+    if(!running) return;
+    const budget = 4 + parseInt(cfg.speed.value)*0.22;   // ms of reaction work per frame
+    const t0=performance.now();
+    do { doEpoch(); } while(performance.now()-t0 < budget);
+    draw(); stats();
+    raf=requestAnimationFrame(loop);
+  }
+  function start(){ if(running)return; running=true; cfg.run.disabled=true; cfg.pause.disabled=false; raf=requestAnimationFrame(loop); }
+  function stop(){ running=false; if(raf)cancelAnimationFrame(raf); cfg.run.disabled=false; cfg.pause.disabled=true; }
+  function reset(){ stop(); init(); draw(); stats(); }
+
+  cfg.run.onclick=start;
+  cfg.pause.onclick=stop;
+  cfg.step.onclick=()=>{ if(!running){ doEpoch(); draw(); stats(); } };
+  cfg.reset.onclick=reset;
+  cfg.seed.onclick=seed;
+  cfg.toggle.querySelectorAll('button').forEach(btn=>{
+    btn.onclick=()=>{
+      cfg.toggle.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+      btn.classList.add('on'); colorMode=btn.dataset.color;
+      cfg.scaleSim.classList.toggle('hide',colorMode!=='sim');
+      cfg.scaleHash.classList.toggle('hide',colorMode!=='hash');
+      draw();
+    };
+  });
+
+  init();
+  return { start, stop, reset, draw, stats };
+}
+
+// B — single IP from position 0 (partner passive)
+const soupB = makeSoup({
+  canvas:$('soup'), spark:$('sparkB'), react:cat=>bffRun(cat,0,0,0),
+  run:$('bRun'), pause:$('bPause'), step:$('bStepE'), reset:$('bReset'), seed:$('bSeed'),
+  speed:$('bSpeed'), mut:$('bMut'), toggle:$('colorToggle'),
+  epoch:$('bEpoch'), rep:$('bRep'), func:$('bFunc'), ent:$('bEnt'), avg:$('bAvg'), uniq:$('bUniq'), clust:$('bClust'),
+  scaleSim:$('scaleSim'), scaleHash:$('scaleHash')
+});
+
+// C — two IPs on a ring (forward + wrap), shared step cap from the UI
+const soupC = makeSoup({
+  canvas:$('soupC'), spark:$('sparkC'), react:cat=>bffReactTwoIP(cat, Math.max(16, parseInt($('cCap').value)||320)),
+  run:$('cRun'), pause:$('cPause'), step:$('cStepE'), reset:$('cReset'), seed:$('cSeed'),
+  speed:$('cSpeed'), mut:$('cMut'), toggle:$('colorToggleC'),
+  epoch:$('cEpoch'), rep:$('cRep'), func:$('cFunc'), ent:$('cEnt'), avg:$('cAvg'), uniq:$('cUniq'), clust:$('cClust'),
+  scaleSim:$('scaleSimC'), scaleHash:$('scaleHashC')
 });
 
 //================================================================
@@ -527,16 +732,18 @@ document.querySelectorAll('.tab').forEach(tab=>{
   tab.onclick=()=>{
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     tab.classList.add('active');
-    const isA = tab.dataset.tab==='A';
-    $('paneA').classList.toggle('hide',!isA);
-    $('paneB').classList.toggle('hide',isA);
-    if(isA) bStop(); else aStop();
+    const sel=tab.dataset.tab;                 // 'A' | 'B' | 'C'
+    $('paneA').classList.toggle('hide', sel!=='A');
+    $('paneB').classList.toggle('hide', sel!=='B');
+    $('paneC').classList.toggle('hide', sel!=='C');
+    aStop(); soupB.stop(); soupC.stop();       // pause whatever was running
   };
 });
 
 // init
 aReset();
-soupInit(); drawSoup(); updateStats();
+soupB.draw(); soupB.stats();
+soupC.draw(); soupC.stats();
 </script>
 </body>
 </html>
