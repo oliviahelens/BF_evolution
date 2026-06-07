@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BFF Playground</title>
+<style>
+  :root{
+    --bg:#0e1014; --panel:#171a21; --panel2:#1d212a; --border:#272d39;
+    --text:#e6e8ec; --muted:#868e9c;
+    --ip:#5b9dff; --r:#2dd4bf; --w:#ffae42; --good:#3ddc84; --warn:#ff7b72;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px 18px 48px}
+  h1{font-size:17px;font-weight:600;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+  h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--ip);box-shadow:0 0 10px var(--ip)}
+  .tabs{display:flex;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border)}
+  .tab{padding:9px 16px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.active{color:var(--text);border-bottom-color:var(--ip)}
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+  label.fld{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px}
+  input[type=text]{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:8px 10px;font-family:var(--mono);font-size:14px;outline:none}
+  input[type=number]{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:7px 8px;font-family:var(--mono);font-size:13px;width:62px;outline:none}
+  input:focus{border-color:var(--ip)}
+  input[type=range]{accent-color:var(--ip);vertical-align:middle}
+  button{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:8px 13px;font-size:14px;cursor:pointer;transition:.12s}
+  button:hover:not(:disabled){border-color:var(--ip);color:#fff}
+  button:disabled{opacity:.4;cursor:default}
+  button.primary{background:var(--ip);border-color:var(--ip);color:#06121f;font-weight:600}
+  button.primary:hover:not(:disabled){filter:brightness(1.08)}
+  button.seed{background:var(--w);border-color:var(--w);color:#1a1205;font-weight:600}
+  .pill{display:inline-flex;gap:6px;background:var(--panel2);border:1px solid var(--border);
+    border-radius:7px;padding:2px;}
+  .pill button{border:none;background:transparent;padding:6px 11px;border-radius:5px}
+  .pill button.on{background:var(--ip);color:#06121f;font-weight:600}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:14px}
+  .panel h2{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin:0 0 12px;font-weight:600}
+  textarea{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:10px 12px;font-family:var(--mono);font-size:15px;resize:vertical;outline:none}
+  textarea:focus{border-color:var(--ip)}
+  .preset{font-size:12px;padding:6px 10px}
+
+  /* ---- tape view ---- */
+  .tape{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .cell{width:34px;display:flex;flex-direction:column;align-items:center}
+  .cell .top,.cell .bot{height:15px;font-size:10px;font-weight:700;display:flex;gap:2px;align-items:center;line-height:1}
+  .cell .ipm{color:var(--ip)}
+  .cell .rm{color:var(--r)}
+  .cell .wm{color:var(--w)}
+  .cell .val{width:34px;height:30px;display:flex;align-items:center;justify-content:center;
+    background:var(--panel2);border:1px solid var(--border);border-radius:5px;
+    font-family:var(--mono);font-size:14px;transition:background .35s,border-color .12s;color:#c5ccd6}
+  .cell.cmd .val{color:#dbe7ff}
+  .cell.iphere .val{border-color:var(--ip);box-shadow:inset 0 0 0 1px var(--ip)}
+  .cell.changed .val{background:#3a3320;border-color:var(--w)}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 0}
+  .stat{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:9px 13px;min-width:96px}
+  .stat .k{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+  .stat .v{font-family:var(--mono);font-size:17px;margin-top:3px}
+  .log{font-family:var(--mono);font-size:13px;background:var(--panel2);border:1px solid var(--border);
+    border-radius:7px;padding:10px 12px;min-height:42px;color:#cfe3ff}
+  .log .halt{color:var(--warn)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:10px}
+  .legend b{font-weight:700}
+  .legend .ip{color:var(--ip)} .legend .r{color:var(--r)} .legend .w{color:var(--w)}
+
+  /* ---- soup ---- */
+  .soupgrid{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+  #soup{background:#0a0c10;border:1px solid var(--border);border-radius:8px;image-rendering:pixelated}
+  .soupside{flex:1;min-width:230px}
+  .scale{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--muted)}
+  .grad{height:12px;flex:1;border-radius:4px;border:1px solid var(--border)}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="dot"></span>BFF Playground</h1>
+  <div class="tabs">
+    <div class="tab active" data-tab="A">Tape debugger</div>
+    <div class="tab" data-tab="B">Primordial soup</div>
+  </div>
+
+  <!-- ============ MODE A ============ -->
+  <div id="paneA">
+    <div class="panel">
+      <h2>Tape</h2>
+      <textarea id="tapeIn" rows="2" spellcheck="false">[.>}]</textarea>
+      <div class="bar" style="margin-top:10px">
+        <span style="color:var(--muted);font-size:12px">presets</span>
+        <button class="preset" data-prog="[.>}]" data-h1="8" data-len="30">self-copier</button>
+        <button class="preset" data-prog="[[{.>]-] ]-]>.{[[" data-h1="0" data-len="64">palindrome replicator</button>
+      </div>
+      <div class="bar">
+        <label class="fld">head0 (R) start <input id="h0in" type="number" value="0" min="0"></label>
+        <label class="fld">head1 (W) start <input id="h1in" type="number" value="8" min="0"></label>
+        <label class="fld">tape length <input id="lenin" type="number" value="30" min="1" max="512"></label>
+        <span class="pill" id="dispToggle">
+          <button data-disp="glyph" class="on">glyph</button>
+          <button data-disp="num">value</button>
+        </span>
+      </div>
+      <div class="bar">
+        <button id="aStep">Step</button>
+        <button id="aRun" class="primary">Run</button>
+        <button id="aPause" disabled>Pause</button>
+        <button id="aReset">Reset</button>
+        <label class="fld" style="margin-left:6px">speed
+          <input id="aSpeed" type="range" min="1" max="200" value="40" style="width:130px"></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Tape state</h2>
+      <div class="tape" id="tapeView"></div>
+      <div class="legend">
+        <span><b class="ip">IP</b> instruction pointer</span>
+        <span><b class="r">R</b> head0 (read)</span>
+        <span><b class="w">W</b> head1 (write)</span>
+        <span style="color:var(--w)">changed last step</span>
+      </div>
+      <div class="stats" style="margin-top:14px">
+        <div class="stat"><div class="k">step</div><div class="v" id="aStepN">0</div></div>
+        <div class="stat"><div class="k">IP</div><div class="v" id="aIP">0</div></div>
+        <div class="stat"><div class="k">head0 R</div><div class="v" id="aH0">0</div></div>
+        <div class="stat"><div class="k">head1 W</div><div class="v" id="aH1">0</div></div>
+        <div class="stat"><div class="k">status</div><div class="v" id="aStatus">ready</div></div>
+      </div>
+      <div style="margin-top:12px" class="log" id="aLog">—</div>
+    </div>
+  </div>
+
+  <!-- ============ MODE B ============ -->
+  <div id="paneB" class="hide">
+    <div class="panel">
+      <div class="bar">
+        <button id="bRun" class="primary">Start</button>
+        <button id="bPause" disabled>Pause</button>
+        <button id="bStepE">Step epoch</button>
+        <button id="bReset">Reset</button>
+        <button id="bSeed" class="seed">Seed replicator</button>
+      </div>
+      <div class="bar">
+        <label class="fld">speed <input id="bSpeed" type="range" min="1" max="100" value="45" style="width:130px"></label>
+        <label class="fld">mutation %
+          <input id="bMut" type="number" value="0.02" min="0" max="5" step="0.01" style="width:70px"></label>
+        <span class="pill" id="colorToggle">
+          <button data-color="sim" class="on">replicator similarity</button>
+          <button data-color="hash">content hash</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Soup &nbsp;<span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">40 × 40 programs · 64 bytes each · well-mixed pairing</span></h2>
+      <div class="soupgrid">
+        <canvas id="soup" width="400" height="400"></canvas>
+        <div class="soupside">
+          <div class="stats">
+            <div class="stat"><div class="k">epoch</div><div class="v" id="bEpoch">0</div></div>
+            <div class="stat"><div class="k">avg replicator match</div><div class="v" id="bAvg">—</div></div>
+            <div class="stat"><div class="k">replicators</div><div class="v" id="bRep">0%</div></div>
+            <div class="stat"><div class="k">unique tapes</div><div class="v" id="bUniq">—</div></div>
+            <div class="stat"><div class="k">largest cluster</div><div class="v" id="bClust">—</div></div>
+          </div>
+          <div class="scale" id="scaleSim">
+            low<span class="grad" style="background:linear-gradient(90deg,#13182a,#2a3b6b,#caa23c,#ffb454)"></span>high
+          </div>
+          <div class="scale hide" id="scaleHash">color = hash of program bytes (same color ⇒ identical program)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+//================================================================
+// BFF interpreter (shared). Bytes: < 60  > 62  { 123  } 125
+//   - 45  + 43  . 46 (copy R->W)  , 44 (copy W->R)  [ 91  ] 93
+// Loops test tape[head0]. Brackets matched dynamically over the
+// CURRENT tape contents at jump time. Heads wrap mod len; the IP
+// halts if it runs off the tape, on an unmatched bracket, or after
+// 8192 steps.
+//================================================================
+const STEP_CAP = 8192;
+
+// Step the VM once. Mutates vm; returns {desc, changed, halted}.
+function bffStep(vm){
+  const t = vm.tape, N = t.length;
+  if(vm.halted) return {desc:'halted', changed:[], halted:true};
+  if(vm.ip<0 || vm.ip>=N){ vm.halted=true; vm.reason='IP off tape'; return {desc:'IP off tape → halt', changed:[], halted:true}; }
+  const op = t[vm.ip];
+  let desc='', changed=[];
+  switch(op){
+    case 60: vm.head0=(vm.head0-1+N)%N; desc=`<  head0 → ${vm.head0}`; break;
+    case 62: vm.head0=(vm.head0+1)%N;   desc=`>  head0 → ${vm.head0}`; break;
+    case 123:vm.head1=(vm.head1-1+N)%N; desc=`{  head1 → ${vm.head1}`; break;
+    case 125:vm.head1=(vm.head1+1)%N;   desc=`}  head1 → ${vm.head1}`; break;
+    case 45:{ t[vm.head0]=(t[vm.head0]-1)&255; changed=[vm.head0]; desc=`-  cell ${vm.head0} → ${t[vm.head0]}`; break; }
+    case 43:{ t[vm.head0]=(t[vm.head0]+1)&255; changed=[vm.head0]; desc=`+  cell ${vm.head0} → ${t[vm.head0]}`; break; }
+    case 46:{ const v=t[vm.head0]; t[vm.head1]=v; changed=[vm.head1]; desc=`.  copied ${v} from cell ${vm.head0} → cell ${vm.head1}`; break; }
+    case 44:{ const v=t[vm.head1]; t[vm.head0]=v; changed=[vm.head0]; desc=`,  copied ${v} from cell ${vm.head1} → cell ${vm.head0}`; break; }
+    case 91:{ // [
+      if(t[vm.head0]===0){
+        let d=1,p=vm.ip+1; for(;p<N&&d>0;p++){ if(t[p]===93)d--; else if(t[p]===91)d++; } p--;
+        if(d!==0){ vm.halted=true; vm.reason='unmatched ['; return {desc:'[  no matching ] → halt', changed:[], halted:true}; }
+        vm.ip=p; desc=`[  cell ${vm.head0}=0 → skip to ] at ${p}`;
+      } else desc=`[  cell ${vm.head0}≠0 → enter loop`;
+      break;
+    }
+    case 93:{ // ]
+      if(t[vm.head0]!==0){
+        let d=1,p=vm.ip-1; for(;p>=0&&d>0;p--){ if(t[p]===93)d++; else if(t[p]===91)d--; } p++;
+        if(d!==0){ vm.halted=true; vm.reason='unmatched ]'; return {desc:']  no matching [ → halt', changed:[], halted:true}; }
+        vm.ip=p; desc=`]  cell ${vm.head0}≠0 → loop back to [ at ${p}`;
+      } else desc=`]  cell ${vm.head0}=0 → exit loop`;
+      break;
+    }
+    default: desc=`·  no-op (byte ${op})`; break;
+  }
+  vm.ip += 1;                       // universal advance (lands just past a jumped bracket)
+  vm.steps++;
+  if(vm.ip<0 || vm.ip>=N){ vm.halted=true; vm.reason='IP off tape'; }
+  else if(vm.steps>=STEP_CAP){ vm.halted=true; vm.reason='step cap'; }
+  return {desc, changed, halted:vm.halted};
+}
+
+// Run a tape to completion in place (used by the soup).
+function bffRun(tape, ip, head0, head1){
+  const N=tape.length; let steps=0;
+  while(steps<STEP_CAP){
+    if(ip<0||ip>=N) break;
+    const op=tape[ip]; let halted=false;
+    switch(op){
+      case 60: head0=(head0-1+N)%N; break;
+      case 62: head0=(head0+1)%N; break;
+      case 123:head1=(head1-1+N)%N; break;
+      case 125:head1=(head1+1)%N; break;
+      case 45: tape[head0]=(tape[head0]-1)&255; break;
+      case 43: tape[head0]=(tape[head0]+1)&255; break;
+      case 46: tape[head1]=tape[head0]; break;
+      case 44: tape[head0]=tape[head1]; break;
+      case 91: if(tape[head0]===0){ let d=1,p=ip+1; for(;p<N&&d>0;p++){if(tape[p]===93)d--;else if(tape[p]===91)d++;} p--; if(d!==0){halted=true;break;} ip=p; } break;
+      case 93: if(tape[head0]!==0){ let d=1,p=ip-1; for(;p>=0&&d>0;p--){if(tape[p]===93)d++;else if(tape[p]===91)d--;} p++; if(d!==0){halted=true;break;} ip=p; } break;
+    }
+    if(halted) break;
+    ip++; steps++;
+    if(ip<0||ip>=N) break;
+  }
+}
+
+const CMD = new Set([60,62,123,125,45,43,46,44,91,93]);
+function glyphFor(b){
+  if(b>=33 && b<127) return String.fromCharCode(b);
+  if(b===32) return '␣';
+  return '·';
+}
+
+//================================================================
+// MODE A — Tape debugger
+//================================================================
+const REPLICATOR = '[[{.>]-] ]-]>.{[[';
+let vmA=null, dispMode='glyph', aRunning=false, aRaf=null, lastChanged=[];
+
+function buildVM(){
+  const src = $('tapeIn').value;
+  let len = Math.max(1, parseInt($('lenin').value)||30);
+  len = Math.max(len, src.length);
+  const tape = new Uint8Array(len);
+  for(let i=0;i<src.length;i++) tape[i] = src.charCodeAt(i)&255;
+  const h0 = Math.max(0, parseInt($('h0in').value)||0) % len;
+  const h1 = Math.max(0, parseInt($('h1in').value)||0) % len;
+  vmA = {tape, ip:0, head0:h0, head1:h1, steps:0, halted:false, reason:''};
+  lastChanged=[];
+}
+
+let cellEls=[];
+function buildTapeView(){
+  const view=$('tapeView'); view.innerHTML=''; cellEls=[];
+  const N=vmA.tape.length;
+  for(let i=0;i<N;i++){
+    const cell=document.createElement('div'); cell.className='cell';
+    const top=document.createElement('div'); top.className='top';
+    const val=document.createElement('div'); val.className='val';
+    const bot=document.createElement('div'); bot.className='bot';
+    cell.append(top,val,bot); view.appendChild(cell);
+    cellEls.push({cell,top,val,bot});
+  }
+}
+
+function paintTape(){
+  const N=vmA.tape.length;
+  for(let i=0;i<N;i++){
+    const {cell,top,val,bot}=cellEls[i];
+    const b=vmA.tape[i];
+    val.textContent = dispMode==='glyph' ? glyphFor(b) : b;
+    cell.classList.toggle('cmd', CMD.has(b));
+    cell.classList.toggle('iphere', i===vmA.ip && !vmA.halted);
+    cell.classList.toggle('changed', lastChanged.includes(i));
+    top.innerHTML = (i===vmA.ip && !vmA.halted) ? '<span class="ipm">IP</span>' : '';
+    let bh='';
+    if(i===vmA.head0) bh+='<span class="rm">R</span>';
+    if(i===vmA.head1) bh+='<span class="wm">W</span>';
+    bot.innerHTML=bh;
+  }
+  $('aStepN').textContent=vmA.steps;
+  $('aIP').textContent=vmA.halted?'—':vmA.ip;
+  $('aH0').textContent=vmA.head0;
+  $('aH1').textContent=vmA.head1;
+  $('aStatus').textContent=vmA.halted?('halted: '+vmA.reason):(aRunning?'running':'ready');
+  $('aStatus').style.color=vmA.halted?'var(--warn)':'var(--text)';
+}
+
+function aStepOnce(){
+  if(vmA.halted) return;
+  const r=bffStep(vmA);
+  lastChanged=r.changed||[];
+  paintTape();
+  const log=$('aLog');
+  log.textContent=r.desc;
+  log.className='log'+(r.halted?' ':'');
+  if(vmA.halted){ log.innerHTML=`<span class="halt">${r.desc.includes('halt')?r.desc:'halted: '+vmA.reason}</span>`; aStop(); }
+}
+
+function aLoop(){
+  if(!aRunning) return;
+  const sp=parseInt($('aSpeed').value);          // steps per frame
+  for(let i=0;i<sp;i++){ if(vmA.halted) break; bffStep_collect(); }
+  paintTape();
+  if(vmA.halted){ $('aLog').innerHTML=`<span class="halt">halted: ${vmA.reason}</span>`; aStop(); return; }
+  aRaf=requestAnimationFrame(aLoop);
+}
+// step used during Run: keep only the last description/changes for the log
+function bffStep_collect(){
+  const r=bffStep(vmA);
+  lastChanged=r.changed||[];
+  $('aLog').textContent=r.desc;
+}
+
+function aStart(){
+  if(aRunning||vmA.halted) return;
+  aRunning=true; $('aRun').disabled=true; $('aPause').disabled=false;
+  aRaf=requestAnimationFrame(aLoop);
+}
+function aStop(){
+  aRunning=false; if(aRaf)cancelAnimationFrame(aRaf);
+  $('aPause').disabled=true;
+  $('aRun').disabled = vmA ? vmA.halted : false;
+  if(vmA && !vmA.halted) paintTape();
+}
+function aReset(){
+  aStop(); buildVM(); buildTapeView(); paintTape();
+  $('aLog').textContent='—'; $('aRun').disabled=false;
+}
+
+$('aStep').onclick=()=>{ if(!aRunning) aStepOnce(); };
+$('aRun').onclick=aStart;
+$('aPause').onclick=aStop;
+$('aReset').onclick=aReset;
+// editing the tape, heads, or length rebuilds the VM live so Step/Run always
+// reflect what's on screen
+['tapeIn','h0in','h1in','lenin'].forEach(id=>$(id).addEventListener('input',aReset));
+document.querySelectorAll('#dispToggle button').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('#dispToggle button').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on'); dispMode=btn.dataset.disp; if(vmA) paintTape();
+  };
+});
+document.querySelectorAll('.preset').forEach(btn=>{
+  btn.onclick=()=>{
+    $('tapeIn').value=btn.dataset.prog;
+    $('h0in').value=0; $('h1in').value=btn.dataset.h1; $('lenin').value=btn.dataset.len;
+    aReset();
+  };
+});
+
+//================================================================
+// MODE B — Primordial soup
+//================================================================
+const GRID=40, POP=GRID*GRID, PROG=64, CELLPX=10;
+const REPB = Array.from(REPLICATOR).map(c=>c.charCodeAt(0));
+let soup=[], epoch=0, bRunning=false, bRaf=null;
+const soupCv=$('soup'), sctx=soupCv.getContext('2d');
+let colorMode='sim';
+
+function randTape(){ const t=new Uint8Array(PROG); for(let i=0;i<PROG;i++) t[i]=(Math.random()*256)|0; return t; }
+function soupInit(){
+  soup=new Array(POP); for(let i=0;i<POP;i++) soup[i]=randTape();
+  epoch=0;
+}
+function mkReplicator(){
+  const t=randTape();                       // junk tail (as in the paper's soup)
+  for(let i=0;i<REPB.length;i++) t[i]=REPB[i];
+  return t;
+}
+function seedReplicator(){
+  // seed ~20% of the population so takeover is reliably demonstrable
+  const n=Math.floor(POP*0.20);
+  const used=new Set();
+  for(let k=0;k<n;k++){
+    let i; do{ i=(Math.random()*POP)|0; }while(used.has(i)); used.add(i);
+    soup[i]=mkReplicator();
+  }
+  drawSoup(); updateStats();
+}
+
+// one epoch: shuffle, pair adjacent, run concatenation, split back, mutate
+function soupEpoch(){
+  const idx=new Int32Array(POP); for(let i=0;i<POP;i++) idx[i]=i;
+  for(let i=POP-1;i>0;i--){ const j=(Math.random()*(i+1))|0; const t=idx[i];idx[i]=idx[j];idx[j]=t; }
+  const mut=(parseFloat($('bMut').value)||0)/100;
+  const cat=new Uint8Array(128);
+  for(let k=0;k+1<POP;k+=2){
+    const a=idx[k], b=idx[k+1];
+    cat.set(soup[a],0); cat.set(soup[b],64);
+    bffRun(cat,0,0,0);
+    soup[a]=cat.slice(0,64); soup[b]=cat.slice(64,128);
+    if(mut){
+      if(Math.random()<mut*PROG) soup[a][(Math.random()*PROG)|0]=(Math.random()*256)|0;
+      if(Math.random()<mut*PROG) soup[b][(Math.random()*PROG)|0]=(Math.random()*256)|0;
+    }
+  }
+  epoch++;
+}
+
+// best-alignment fraction of replicator bytes present in a program
+function repSim(t){
+  let best=0;
+  for(let off=0; off+REPB.length<=PROG; off++){
+    let m=0; for(let i=0;i<REPB.length;i++) if(t[off+i]===REPB[i]) m++;
+    if(m>best){ best=m; if(best===REPB.length) break; }
+  }
+  return best/REPB.length;
+}
+function hashTape(t){
+  let h=2166136261>>>0;
+  for(let i=0;i<PROG;i++){ h^=t[i]; h=Math.imul(h,16777619); }
+  return h>>>0;
+}
+function simColor(s){
+  // dark navy (empty) -> bright amber (replicator)
+  const h = 222 - s*190;          // 222 -> ~32
+  const sat = 35 + s*60;          // 35% -> 95%
+  const lig = 9 + s*52;           // 9%  -> 61%
+  return `hsl(${h},${sat}%,${lig}%)`;
+}
+
+function drawSoup(){
+  for(let y=0;y<GRID;y++){
+    for(let x=0;x<GRID;x++){
+      const t=soup[y*GRID+x];
+      let col;
+      if(colorMode==='sim'){ col=simColor(repSim(t)); }
+      else { const h=hashTape(t); col=`hsl(${h%360},65%,${30+(h>>9)%35}%)`; }
+      sctx.fillStyle=col;
+      sctx.fillRect(x*CELLPX, y*CELLPX, CELLPX-1, CELLPX-1);
+    }
+  }
+}
+
+function updateStats(){
+  let sum=0, reps=0;
+  const counts=new Map();
+  for(let i=0;i<POP;i++){
+    const s=repSim(soup[i]); sum+=s; if(s>=0.9) reps++;
+    const h=hashTape(soup[i]); counts.set(h,(counts.get(h)||0)+1);
+  }
+  let maxc=0; for(const v of counts.values()) if(v>maxc) maxc=v;
+  $('bEpoch').textContent=epoch;
+  $('bAvg').textContent=(sum/POP*100).toFixed(0)+'%';
+  $('bRep').textContent=(reps/POP*100).toFixed(0)+'%';
+  $('bUniq').textContent=counts.size;
+  $('bClust').textContent=(maxc/POP*100).toFixed(0)+'%';
+  const avgEl=$('bAvg'); avgEl.style.color = (sum/POP)>0.4 ? 'var(--good)' : 'var(--text)';
+}
+
+function bLoop(){
+  if(!bRunning) return;
+  const sp=parseInt($('bSpeed').value);
+  const budget = 4 + sp*0.22;                 // ms of reaction work per frame
+  const t0=performance.now();
+  do { soupEpoch(); } while(performance.now()-t0 < budget);
+  drawSoup(); updateStats();
+  bRaf=requestAnimationFrame(bLoop);
+}
+function bStart(){ if(bRunning)return; bRunning=true; $('bRun').disabled=true; $('bPause').disabled=false; bRaf=requestAnimationFrame(bLoop); }
+function bStop(){ bRunning=false; if(bRaf)cancelAnimationFrame(bRaf); $('bRun').disabled=false; $('bPause').disabled=true; }
+function bReset(){ bStop(); soupInit(); drawSoup(); updateStats(); }
+
+$('bRun').onclick=bStart;
+$('bPause').onclick=bStop;
+$('bStepE').onclick=()=>{ if(!bRunning){ soupEpoch(); drawSoup(); updateStats(); } };
+$('bReset').onclick=bReset;
+$('bSeed').onclick=seedReplicator;
+document.querySelectorAll('#colorToggle button').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('#colorToggle button').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on'); colorMode=btn.dataset.color;
+    $('scaleSim').classList.toggle('hide',colorMode!=='sim');
+    $('scaleHash').classList.toggle('hide',colorMode!=='hash');
+    drawSoup();
+  };
+});
+
+//================================================================
+// Tabs
+//================================================================
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const isA = tab.dataset.tab==='A';
+    $('paneA').classList.toggle('hide',!isA);
+    $('paneB').classList.toggle('hide',isA);
+    if(isA) bStop(); else aStop();
+  };
+});
+
+// init
+aReset();
+soupInit(); drawSoup(); updateStats();
+</script>
+</body>
+</html>

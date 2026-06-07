@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brainfuck Evolution Lab</title>
+<style>
+  :root{
+    --bg:#0e1014; --panel:#171a21; --panel2:#1d212a; --border:#272d39;
+    --text:#e6e8ec; --muted:#868e9c; --accent:#5b9dff; --teal:#2dd4bf;
+    --good:#3ddc84; --warn:#ffb454; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px}
+  .wrap{max-width:1040px;margin:0 auto;padding:22px 18px 40px}
+  h1{font-size:17px;font-weight:600;letter-spacing:.2px;margin:0 0 16px;display:flex;align-items:center;gap:10px}
+  h1 .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal)}
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+  label.fld{display:flex;align-items:center;gap:8px;color:var(--muted)}
+  input[type=text]{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:8px 10px;font-family:var(--mono);font-size:14px;width:120px;outline:none}
+  input[type=text]:focus{border-color:var(--accent)}
+  button{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:8px 14px;font-size:14px;cursor:pointer;transition:.12s}
+  button:hover:not(:disabled){border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.4;cursor:default}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:600}
+  button.primary:hover:not(:disabled){filter:brightness(1.08)}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:10px 14px;min-width:108px}
+  .stat .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+  .stat .v{font-family:var(--mono);font-size:20px;margin-top:3px}
+  .stat .v.good{color:var(--good)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:14px}
+  .panel h2{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin:0 0 10px;font-weight:600}
+  .io-row{display:flex;gap:10px;margin-bottom:10px}
+  .io-box{flex:1;min-width:0}
+  .io-box .lbl{font-size:11px;color:var(--muted);margin-bottom:5px}
+  .charline{font-family:var(--mono);font-size:22px;letter-spacing:1px;background:var(--panel2);
+    border:1px solid var(--border);border-radius:7px;padding:10px 12px;min-height:46px;
+    word-break:break-all;white-space:pre-wrap}
+  .np{color:var(--warn);opacity:.85}
+  .src{font-family:var(--mono);font-size:13px;line-height:1.5;background:var(--panel2);
+    border:1px solid var(--border);border-radius:7px;padding:11px 12px;white-space:pre-wrap;
+    word-break:break-all;max-height:220px;overflow:auto;color:#cfe3ff}
+  .chartwrap{margin-top:14px}
+  canvas{width:100%;display:block;background:var(--panel);border:1px solid var(--border);border-radius:11px}
+  .flag{margin-left:6px;font-size:13px;color:var(--good)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="dot"></span>Brainfuck Evolution Lab</h1>
+
+  <div class="bar">
+    <label class="fld">target
+      <input id="target" type="text" value="hi" maxlength="6" spellcheck="false" autocomplete="off">
+    </label>
+    <button id="run" class="primary">Evolve</button>
+    <button id="pause" disabled>Pause</button>
+    <button id="reset">Reset</button>
+    <span id="flag" class="flag"></span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="k">generation</div><div class="v" id="s-gen">0</div></div>
+    <div class="stat"><div class="k">best score</div><div class="v" id="s-best">—</div></div>
+    <div class="stat"><div class="k">population</div><div class="v" id="s-pop">400</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Output</h2>
+      <div class="io-row">
+        <div class="io-box">
+          <div class="lbl">target</div>
+          <div class="charline" id="out-target"></div>
+        </div>
+        <div class="io-box">
+          <div class="lbl">best output</div>
+          <div class="charline" id="out-best"></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Best program</h2>
+      <div class="src" id="src">—</div>
+    </div>
+  </div>
+
+  <div class="chartwrap">
+    <canvas id="chart" width="1004" height="180"></canvas>
+  </div>
+</div>
+
+<script>
+"use strict";
+//==================== Brainfuck interpreter ====================
+const ALPHABET = ['+','-','<','>','[',']','.'];   // no ',' — there is no input
+const POP = 400;
+const MAX_STEPS = 6000;
+const TAPE_LEN = 4000;
+const MAX_PROG = 400;
+
+const rnd = n => (Math.random()*n)|0;
+const randChar = () => ALPHABET[rnd(ALPHABET.length)];
+function randProg(){
+  const n = 8 + rnd(41);            // length 8..48
+  let s = '';
+  for(let i=0;i<n;i++) s += randChar();
+  return s;
+}
+
+// Precompute bracket matches; unmatched brackets -> -1 (treated as no-ops).
+function matchBrackets(src){
+  const m = new Int32Array(src.length).fill(-1);
+  const st = [];
+  for(let i=0;i<src.length;i++){
+    const c = src.charCodeAt(i);
+    if(c===91) st.push(i);                 // '['
+    else if(c===93){                       // ']'
+      if(st.length){ const j=st.pop(); m[i]=j; m[j]=i; }
+    }
+  }
+  return m;
+}
+
+const sharedTape = new Uint8Array(TAPE_LEN);
+// Run a program, return its output bytes (capped at targetLen+4).
+function interpret(src, targetLen){
+  const m = matchBrackets(src);
+  const tape = sharedTape; tape.fill(0);
+  let ptr=0, ip=0, steps=0;
+  const out = [];
+  const cap = targetLen + 4;
+  const len = src.length;
+  while(ip<len && steps<MAX_STEPS){
+    const c = src.charCodeAt(ip);
+    switch(c){
+      case 43: tape[ptr]=(tape[ptr]+1)&255; break;        // +
+      case 45: tape[ptr]=(tape[ptr]-1)&255; break;        // -
+      case 62: ptr=ptr+1>=TAPE_LEN?0:ptr+1; break;        // >
+      case 60: ptr=ptr-1<0?TAPE_LEN-1:ptr-1; break;       // <
+      case 46:                                            // .
+        out.push(tape[ptr]);
+        if(out.length>cap) ip=len;
+        break;
+      case 91: if(m[ip]!==-1 && tape[ptr]===0) ip=m[ip]; break;  // [
+      case 93: if(m[ip]!==-1 && tape[ptr]!==0) ip=m[ip]; break;  // ]
+    }
+    ip++; steps++;
+  }
+  return out;
+}
+
+// Fitness: lower is better.
+function fitness(out, tcodes){
+  let f = 0;
+  for(let i=0;i<tcodes.length;i++){
+    f += (i<out.length) ? Math.abs(out[i]-tcodes[i]) : 256;
+  }
+  f += Math.max(0, out.length - tcodes.length);   // bloat penalty
+  return f;
+}
+
+//==================== Genetic operators ====================
+function mutate(s){
+  let arr = s.split('');
+  const edits = (Math.random()<0.12) ? (4+rnd(5)) : (1+rnd(3));   // burst vs normal
+  for(let e=0;e<edits;e++){
+    const op = rnd(3);
+    if(op===0){ if(arr.length) arr[rnd(arr.length)] = randChar(); }        // substitute
+    else if(op===1){ arr.splice(rnd(arr.length+1),0,randChar()); }          // insert
+    else { if(arr.length>1) arr.splice(rnd(arr.length),1); }                // delete
+  }
+  if(arr.length>MAX_PROG) arr.length = MAX_PROG;
+  if(arr.length===0) return randChar();
+  return arr.join('');
+}
+function crossover(a,b){
+  const ca = rnd(a.length+1), cb = rnd(b.length+1);
+  let c = a.slice(0,ca) + b.slice(cb);
+  if(c.length>MAX_PROG) c = c.slice(0,MAX_PROG);
+  if(c.length===0) c = randChar();
+  return c;
+}
+
+//==================== Evolution state ====================
+let pop=[], tcodes=[], generation=0, bestScore=Infinity, bestProg='', bestOut=[];
+let history=[], running=false, solved=false, rafId=null;
+
+function initPop(){
+  pop = new Array(POP);
+  for(let i=0;i<POP;i++) pop[i]=randProg();
+  generation=0; bestScore=Infinity; bestProg=''; bestOut=[];
+  history=[]; solved=false;
+}
+
+// Advance one generation. Returns best fitness this generation.
+function step(){
+  const scored = pop.map(s=>{
+    const out = interpret(s, tcodes.length);
+    return {s, out, f: fitness(out, tcodes)};
+  });
+  scored.sort((a,b)=>a.f-b.f);
+
+  bestScore = scored[0].f;
+  bestProg  = scored[0].s;
+  bestOut   = scored[0].out;
+  history.push(bestScore);
+  generation++;
+
+  if(bestScore===0){ solved=true; return; }
+
+  const half = POP>>1;
+  const survivors = scored.slice(0, half);
+  const next = new Array(POP);
+  let k=0;
+  for(let i=0;i<6;i++) next[k++]=scored[i].s;             // elitism: top 6
+  const fresh = Math.floor(POP*0.12);                      // diversity injection ~12%
+  for(let i=0;i<fresh;i++) next[k++]=randProg();
+  while(k<POP){                                            // reproduction
+    let child;
+    if(Math.random()<0.6){
+      const a=survivors[rnd(half)].s, b=survivors[rnd(half)].s;
+      child = crossover(a,b);
+    } else {
+      child = survivors[rnd(half)].s;
+    }
+    next[k++] = mutate(child);
+  }
+  pop = next;
+}
+
+//==================== Rendering ====================
+const $ = id => document.getElementById(id);
+const elGen=$('s-gen'), elBest=$('s-best'), elPop=$('s-pop'),
+      elOutT=$('out-target'), elOutB=$('out-best'), elSrc=$('src'), elFlag=$('flag');
+const chart=$('chart'), ctx=chart.getContext('2d');
+
+function renderChars(el, bytes){
+  let html='';
+  for(const b of bytes){
+    if(b>=32 && b<127){
+      const ch = b===32 ? ' ' : String.fromCharCode(b);
+      html += ch.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;');
+    } else {
+      html += '<span class="np">·</span>';   // placeholder glyph for non-printable
+    }
+  }
+  el.innerHTML = html || '&nbsp;';
+}
+
+function drawChart(){
+  const W=chart.width, H=chart.height, pad=10;
+  ctx.clearRect(0,0,W,H);
+  if(history.length<2) return;
+  const maxV = Math.max(...history, 1);
+  const n = history.length;
+  // baseline at 0
+  ctx.strokeStyle='#262d39'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
+  // line
+  ctx.beginPath();
+  ctx.strokeStyle='#2dd4bf'; ctx.lineWidth=2;
+  for(let i=0;i<n;i++){
+    const x = pad + (W-2*pad)*(n===1?0:i/(n-1));
+    const y = pad + (H-2*pad)*(1 - history[i]/maxV);
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  }
+  ctx.stroke();
+  // current best dot
+  const lx = W-pad, ly = pad+(H-2*pad)*(1-history[n-1]/maxV);
+  ctx.fillStyle = solved ? '#3ddc84' : '#5b9dff';
+  ctx.beginPath(); ctx.arc(lx,ly,3,0,7); ctx.fill();
+}
+
+function render(){
+  elGen.textContent = generation;
+  elBest.textContent = bestScore===Infinity ? '—' : bestScore;
+  elBest.className = 'v' + (solved?' good':'');
+  elPop.textContent = POP;
+  renderChars(elOutB, bestOut);
+  elSrc.textContent = bestProg || '—';
+  elFlag.textContent = solved ? '✔ solved' : '';
+  drawChart();
+}
+
+//==================== Loop & controls ====================
+function loop(){
+  if(!running) return;
+  const t0 = performance.now();
+  // run several generations per frame within a time budget
+  while(performance.now()-t0 < 14){
+    step();
+    if(solved) break;
+  }
+  render();
+  if(solved){ stop(); return; }
+  rafId = requestAnimationFrame(loop);
+}
+
+function start(){
+  if(running) return;
+  const cur = Array.from($('target').value).map(c=>c.charCodeAt(0)&255);
+  const changed = cur.length!==tcodes.length || cur.some((c,i)=>c!==tcodes[i]);
+  if(solved || pop.length===0 || changed){ resetRun(); }   // fresh run on new/changed target
+  running=true;
+  $('run').disabled=true; $('pause').disabled=false;
+  rafId = requestAnimationFrame(loop);
+}
+function stop(){
+  running=false;
+  if(rafId) cancelAnimationFrame(rafId);
+  $('run').disabled=false; $('pause').disabled=true;
+}
+function resetRun(){
+  stop();
+  tcodes = Array.from($('target').value).map(c=>c.charCodeAt(0)&255);
+  if(tcodes.length===0) tcodes=[104,105]; // fall back to "hi"
+  initPop();
+  renderChars(elOutT, tcodes);
+  render();
+}
+
+$('run').addEventListener('click', start);
+$('pause').addEventListener('click', stop);
+$('reset').addEventListener('click', resetRun);
+$('target').addEventListener('keydown', e=>{ if(e.key==='Enter'){ resetRun(); start(); }});
+
+// init
+resetRun();
+</script>
+</body>
+</html>
