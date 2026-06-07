@@ -112,7 +112,7 @@
         <button id="aPause" disabled>Pause</button>
         <button id="aReset">Reset</button>
         <label class="fld" style="margin-left:6px">speed
-          <input id="aSpeed" type="range" min="1" max="200" value="40" style="width:130px"></label>
+          <input id="aSpeed" type="range" min="1" max="100" value="35" style="width:130px"></label>
       </div>
     </div>
 
@@ -331,11 +331,19 @@ function aStepOnce(){
   if(vmA.halted){ log.innerHTML=`<span class="halt">${r.desc.includes('halt')?r.desc:'halted: '+vmA.reason}</span>`; aStop(); }
 }
 
-function aLoop(){
+let aAcc=0, aLast=0;
+// slider 1..100 -> 0.5 .. 4000 steps/sec (exponential), so the low end crawls
+// (one step every 2 seconds) while the high end still rips through long runs
+function aSliderToSPS(v){ const lo=0.5, hi=4000; return lo*Math.pow(hi/lo,(v-1)/99); }
+function aLoop(ts){
   if(!aRunning) return;
-  const sp=parseInt($('aSpeed').value);          // steps per frame
-  for(let i=0;i<sp;i++){ if(vmA.halted) break; bffStep_collect(); }
-  paintTape();
+  if(!aLast) aLast=ts;
+  const dt=ts-aLast; aLast=ts;
+  aAcc += (dt/1000)*aSliderToSPS(parseInt($('aSpeed').value));
+  if(aAcc>60) aAcc=60;                 // don't binge after a long pause / backgrounded tab
+  let did=0;
+  while(aAcc>=1 && !vmA.halted && did<200000){ bffStep_collect(); aAcc-=1; did++; }
+  if(did) paintTape();
   if(vmA.halted){ $('aLog').innerHTML=`<span class="halt">halted: ${vmA.reason}</span>`; aStop(); return; }
   aRaf=requestAnimationFrame(aLoop);
 }
@@ -349,6 +357,7 @@ function bffStep_collect(){
 function aStart(){
   if(aRunning||vmA.halted) return;
   aRunning=true; $('aRun').disabled=true; $('aPause').disabled=false;
+  aAcc=0; aLast=0;
   aRaf=requestAnimationFrame(aLoop);
 }
 function aStop(){
