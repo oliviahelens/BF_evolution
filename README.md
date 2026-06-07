@@ -1,11 +1,11 @@
-# Brainfuck Evolution Lab + BFF Playground
+# BF Evolution Lab + BFF Playground
 
-Two self-contained, single-file interactive web tools. No build step, no
-dependencies, no storage — open either HTML file directly in a browser.
+Two self-contained, single-file interactive web tools. Open either HTML file
+directly in a browser.
 
-## `evolution_lab.html` — Brainfuck Evolution Lab
-A genetic-programming tool that evolves a standard Brainfuck program from random
-noise until its output matches a target string.
+## `evolution_lab.html` — BF Evolution Lab
+A genetic-programming tool that evolves a standard BF (Brainfuck) program from
+random noise until its output matches a target string.
 
 - Alphabet `+ - < > [ ] .` (no input). Tape 4000 cells, 6000-step execution cap.
 - Population 400; fitness = per-byte distance to the target (+256 for missing
