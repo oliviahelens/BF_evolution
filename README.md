@@ -39,10 +39,13 @@ a 128-cell **ring** with **two** instruction pointers — one per program (start
 at positions 0 and 64), each with its own heads. Both run forward and wrap past the
 end, alternating one step at a time, so either program can act on the other (the
 setup is symmetric, so pairing order is irrelevant). With no "run off the end" to
-stop them, reactions end at an adjustable **step cap** — the key control: near
-300–350 the seeded palindrome briefly takes over and is then displaced; higher
-(e.g. 1024) the seed never catches on, yet *novel* self-replicators emerge and
-persist. Unlike Mode B, no seeded lineage stays dominant — emergence tends to win.
+stop them, reactions end at an adjustable **step cap** (default 1024) — the key
+control. Near 300–350 the seeded palindrome briefly takes over and is then
+displaced by novel replicators, but that regime is *transient* — over many
+thousands of epochs self-copy decays back toward disorder. Higher (≈1024) the seed
+never catches on, yet novel self-replicators emerge and *persist* (self-copy
+~85–90%): the stable emergent regime. Unlike Mode B, no seeded lineage stays
+dominant.
 
 Both soups report, beyond the seed-template match (`replicators` / `avg seed
 match`): **entropy** (normalized Shannon entropy of 4-grams across the soup, a

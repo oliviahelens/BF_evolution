@@ -201,7 +201,7 @@
       <div class="bar">
         <label class="fld">speed <input id="cSpeed" type="range" min="1" max="100" value="45" style="width:130px"></label>
         <label class="fld">mutation % <input id="cMut" type="number" value="0.02" min="0" max="5" step="0.01" style="width:70px"></label>
-        <label class="fld">step cap <input id="cCap" type="number" value="320" min="16" max="8192" step="16" style="width:74px"></label>
+        <label class="fld">step cap <input id="cCap" type="number" value="1024" min="16" max="8192" step="16" style="width:74px"></label>
         <span class="pill" id="colorToggleC">
           <button data-color="sim" class="on">replicator similarity</button>
           <button data-color="hash">content hash</button>
@@ -218,12 +218,12 @@
         the other (order is irrelevant by symmetry). With no “run off the end” to halt them, a reaction
         ends only at the <b>step cap</b> — the key dial. Seed a replicator and watch the sparkline:
         <br>• around <b>300–350</b> the <i>seeded</i> palindrome briefly takes over (amber spikes), then is
-        displaced — seed match crashes toward 0 and entropy collapses while <b>self-copy</b> stays high,
-        because emergent <i>novel</i> replicators (invisible to the seed template) outcompete it;
-        <br>• higher (e.g. <b>1024</b>) the seed never gets a foothold, yet novel replicators still emerge
-        and <i>persist</i> (self-copy ~85–90%).
-        <br>Unlike the single-IP soup — where the seeded lineage takes over and stays — here emergence
-        tends to win.
+        displaced by emergent <i>novel</i> replicators — but this regime is <b>transient</b>: over many
+        thousands of epochs self-copy decays and entropy climbs back toward disorder (the soup peters out);
+        <br>• higher (e.g. <b>1024</b>) the seed never gets a foothold, yet novel replicators emerge and
+        <b>persist</b> — self-copy holds ~85–90% indefinitely (entropy stays high because they stay diverse).
+        <br>So <b>raise the cap to keep replication alive</b> — that is the stable emergent regime. (The
+        single-IP soup, by contrast, locks in the seeded lineage and keeps it.)
       </p>
       <div class="soupgrid">
         <canvas id="soupC" width="400" height="400"></canvas>
