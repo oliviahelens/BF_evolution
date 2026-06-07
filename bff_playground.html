@@ -601,15 +601,17 @@ function selfCopies(P, react){
   }
   return false;
 }
-// soup-wide self-copy rate: fraction of a random sample that self-copy
-function funcCopyRate(soup, react){
-  let rep=0; for(let s=0;s<FUNC_SAMPLE;s++) if(selfCopies(soup[(Math.random()*POP)|0], react)) rep++;
-  return rep/FUNC_SAMPLE;
-}
-// per-cell self-copy reliability (0..1) over a few trials, for grid coloring
+// per-program self-copy reliability (0..1) over a few trials — the shared unit
+// for both the grid coloring and the rate, so they always agree
 function cellFunc(P, react){
   let n=0; for(let k=0;k<FUNC_CELL_TRIALS;k++) if(selfCopies(P, react)) n++;
   return n/FUNC_CELL_TRIALS;
+}
+// soup-wide self-copy rate from a random sample (used when the grid is NOT in
+// self-copy mode; in that mode the full-grid average is reused instead)
+function funcCopyRate(soup, react){
+  let sum=0; for(let s=0;s<FUNC_SAMPLE;s++) sum+=cellFunc(soup[(Math.random()*POP)|0], react);
+  return sum/FUNC_SAMPLE;
 }
 function funcColor(f){                  // navy (non-replicator) -> bright green (reliable replicator)
   return `hsl(${222-71*f},${40+28*f}%,${12+40*f}%)`;
