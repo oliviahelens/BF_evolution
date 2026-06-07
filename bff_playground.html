@@ -76,6 +76,13 @@
   .soupside{flex:1;min-width:230px}
   .scale{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--muted)}
   .grad{height:12px;flex:1;border-radius:4px;border:1px solid var(--border)}
+  .inspect{margin-top:14px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+  .inspect .ihead{color:var(--muted);font-size:12px;margin-bottom:8px}
+  .inspect .ibytes{display:flex;flex-wrap:wrap;gap:2px}
+  .inspect .ib{width:19px;height:21px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:11px;background:var(--panel);border:1px solid var(--border);border-radius:3px;color:#9aa3b2}
+  .inspect .ib.cmd{color:#dbe7ff;background:#1e2a44;border-color:#37507e}
+  #soup,#soupC{cursor:pointer}
   .hide{display:none}
 </style>
 </head>
@@ -187,6 +194,10 @@
           <div class="scale hide" id="scaleFunc">non-replicator<span class="grad" style="background:linear-gradient(90deg,#13182a,#1f7a4d,#3ddc84)"></span>replicator</div>
         </div>
       </div>
+      <div class="inspect" id="inspectB">
+        <div class="ihead">click a cell to inspect its program</div>
+        <div class="ibytes"></div>
+      </div>
     </div>
   </div>
 
@@ -253,6 +264,10 @@
           <div class="scale hide" id="scaleHashC">color = hash of program bytes (same color ⇒ identical program)</div>
           <div class="scale" id="scaleFuncC" style="margin-top:12px">non-replicator<span class="grad" style="background:linear-gradient(90deg,#13182a,#1f7a4d,#3ddc84)"></span>replicator</div>
         </div>
+      </div>
+      <div class="inspect" id="inspectC">
+        <div class="ihead">click a cell to inspect its program</div>
+        <div class="ibytes"></div>
       </div>
     </div>
   </div>
@@ -622,7 +637,7 @@ function makeSoup(cfg){
   const ctx=cfg.canvas.getContext('2d');
   const sctx=cfg.spark.getContext('2d');
   let soup=[], epoch=0, running=false, raf=null, colorMode=cfg.color||'sim';
-  let entHist=[], funcHist=[], seedHist=[], lastFuncMean=0;
+  let entHist=[], funcHist=[], seedHist=[], lastFuncMean=0, selected=-1;
 
   function init(){ soup=new Array(POP); for(let i=0;i<POP;i++) soup[i]=randTape(); epoch=0; entHist=[]; funcHist=[]; seedHist=[]; }
   function seed(){
@@ -649,6 +664,7 @@ function makeSoup(cfg){
     epoch++;
   }
   function draw(){
+    ctx.clearRect(0,0,cfg.canvas.width,cfg.canvas.height);   // avoid selection-outline residue in cell gaps
     let funcSum=0;
     for(let y=0;y<GRID;y++) for(let x=0;x<GRID;x++){
       const t=soup[y*GRID+x]; let col;
@@ -659,6 +675,10 @@ function makeSoup(cfg){
     }
     // when coloring by self-copy we just tested every program — reuse that as the rate
     if(colorMode==='func') lastFuncMean=funcSum/POP;
+    if(selected>=0){
+      const sx=(selected%GRID)*CELLPX, sy=((selected/GRID)|0)*CELLPX;
+      ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(sx+1, sy+1, CELLPX-2, CELLPX-2);
+    }
   }
   function drawSpark(){
     const W=cfg.spark.width, H=cfg.spark.height;
@@ -674,7 +694,18 @@ function makeSoup(cfg){
     };
     plot(entHist,'#5b9dff');      // entropy
     plot(funcHist,'#3ddc84');     // self-copy rate
-    plot(seedHist,'#ffae42');     // seed match
+    plot(seedHist,'#ffae42');     // seed reps
+  }
+  // render the clicked program's 64 bytes (live) into the inspector panel
+  function drawInspector(){
+    const head=cfg.inspect.firstElementChild, bytes=cfg.inspect.lastElementChild;
+    if(selected<0){ head.textContent='click a cell to inspect its program'; bytes.innerHTML=''; return; }
+    const t=soup[selected];
+    let c=0; for(let k=0;k<4;k++) if(selfCopies(t, cfg.react)) c++;
+    head.innerHTML=`program #${selected} &nbsp;·&nbsp; seed similarity ${Math.round(repSim(t)*100)}% &nbsp;·&nbsp; `
+      + (c ? `<b style="color:#3ddc84">self-copies (${c}/4 trials)</b>` : `<span style="color:var(--muted)">does not self-copy</span>`);
+    let h=''; for(let i=0;i<PROG;i++){ const b=t[i]; h+=`<div class="ib${CMD.has(b)?' cmd':''}" title="byte ${i} = ${b}">${glyphFor(b)}</div>`; }
+    bytes.innerHTML=h;
   }
   function stats(){
     let sum=0, reps=0; const counts=new Map();
@@ -698,6 +729,7 @@ function makeSoup(cfg){
     cfg.avg.style.color = (sum/POP)>0.4 ? 'var(--good)' : 'var(--text)';
     cfg.func.style.color = func>0.4 ? 'var(--good)' : 'var(--text)';
     drawSpark();
+    drawInspector();
   }
   function loop(){
     if(!running) return;
@@ -711,6 +743,12 @@ function makeSoup(cfg){
   function stop(){ running=false; if(raf)cancelAnimationFrame(raf); cfg.run.disabled=false; cfg.pause.disabled=true; }
   function reset(){ stop(); init(); draw(); stats(); }
 
+  cfg.canvas.onclick=e=>{
+    const r=cfg.canvas.getBoundingClientRect();
+    const col=Math.max(0,Math.min(GRID-1,((e.clientX-r.left)/(r.width/GRID))|0));
+    const row=Math.max(0,Math.min(GRID-1,((e.clientY-r.top)/(r.height/GRID))|0));
+    selected=row*GRID+col; draw(); drawInspector();
+  };
   cfg.run.onclick=start;
   cfg.pause.onclick=stop;
   cfg.step.onclick=()=>{ if(!running){ doEpoch(); draw(); stats(); } };
@@ -737,7 +775,7 @@ const soupB = makeSoup({
   run:$('bRun'), pause:$('bPause'), step:$('bStepE'), reset:$('bReset'), seed:$('bSeed'),
   speed:$('bSpeed'), mut:$('bMut'), toggle:$('colorToggle'),
   epoch:$('bEpoch'), rep:$('bRep'), func:$('bFunc'), ent:$('bEnt'), avg:$('bAvg'), uniq:$('bUniq'), clust:$('bClust'),
-  scaleSim:$('scaleSim'), scaleHash:$('scaleHash'), scaleFunc:$('scaleFunc')
+  scaleSim:$('scaleSim'), scaleHash:$('scaleHash'), scaleFunc:$('scaleFunc'), inspect:$('inspectB')
 });
 
 // C — two IPs on a ring (forward + wrap), shared step cap from the UI
@@ -746,7 +784,7 @@ const soupC = makeSoup({
   run:$('cRun'), pause:$('cPause'), step:$('cStepE'), reset:$('cReset'), seed:$('cSeed'),
   speed:$('cSpeed'), mut:$('cMut'), toggle:$('colorToggleC'),
   epoch:$('cEpoch'), rep:$('cRep'), func:$('cFunc'), ent:$('cEnt'), avg:$('cAvg'), uniq:$('cUniq'), clust:$('cClust'),
-  scaleSim:$('scaleSimC'), scaleHash:$('scaleHashC'), scaleFunc:$('scaleFuncC')
+  scaleSim:$('scaleSimC'), scaleHash:$('scaleHashC'), scaleFunc:$('scaleFuncC'), inspect:$('inspectC')
 });
 
 //================================================================
