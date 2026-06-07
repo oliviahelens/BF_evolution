@@ -152,7 +152,8 @@
         <label class="fld">mutation %
           <input id="bMut" type="number" value="0.02" min="0" max="5" step="0.01" style="width:70px"></label>
         <span class="pill" id="colorToggle">
-          <button data-color="sim" class="on">replicator similarity</button>
+          <button data-color="sim" class="on">seed match</button>
+          <button data-color="func">self-copy</button>
           <button data-color="hash">content hash</button>
         </span>
       </div>
@@ -183,6 +184,7 @@
             low<span class="grad" style="background:linear-gradient(90deg,#13182a,#2a3b6b,#caa23c,#ffb454)"></span>high
           </div>
           <div class="scale hide" id="scaleHash">color = hash of program bytes (same color ⇒ identical program)</div>
+          <div class="scale hide" id="scaleFunc">non-replicator<span class="grad" style="background:linear-gradient(90deg,#13182a,#1f7a4d,#3ddc84)"></span>replicator</div>
         </div>
       </div>
     </div>
@@ -203,7 +205,8 @@
         <label class="fld">mutation % <input id="cMut" type="number" value="0.02" min="0" max="5" step="0.01" style="width:70px"></label>
         <label class="fld">step cap <input id="cCap" type="number" value="1024" min="16" max="8192" step="16" style="width:74px"></label>
         <span class="pill" id="colorToggleC">
-          <button data-color="sim" class="on">replicator similarity</button>
+          <button data-color="sim">seed match</button>
+          <button data-color="func" class="on">self-copy</button>
           <button data-color="hash">content hash</button>
         </span>
       </div>
@@ -244,10 +247,11 @@
             <span><b style="color:#ffae42">seed match</b></span>
             <span style="color:var(--muted)">over time</span>
           </div>
-          <div class="scale" id="scaleSimC" style="margin-top:12px">
+          <div class="scale hide" id="scaleSimC" style="margin-top:12px">
             low<span class="grad" style="background:linear-gradient(90deg,#13182a,#2a3b6b,#caa23c,#ffb454)"></span>high
           </div>
           <div class="scale hide" id="scaleHashC">color = hash of program bytes (same color ⇒ identical program)</div>
+          <div class="scale" id="scaleFuncC" style="margin-top:12px">non-replicator<span class="grad" style="background:linear-gradient(90deg,#13182a,#1f7a4d,#3ddc84)"></span>replicator</div>
         </div>
       </div>
     </div>
@@ -524,7 +528,7 @@ document.querySelectorAll('.preset').forEach(btn=>{
 //================================================================
 const GRID=40, POP=GRID*GRID, PROG=64, CELLPX=10;
 const REPB = Array.from(REPLICATOR).map(c=>c.charCodeAt(0));
-const FUNC_SAMPLE=100, FUNC_L=12, SPARK_MAX=240;
+const FUNC_SAMPLE=100, FUNC_L=12, FUNC_CELL_TRIALS=2, SPARK_MAX=240;
 
 function randTape(){ const t=new Uint8Array(PROG); for(let i=0;i<PROG;i++) t[i]=(Math.random()*256)|0; return t; }
 function mkReplicator(){                       // replicator core + junk tail (as in the paper's soup)
@@ -573,38 +577,49 @@ function mirrorProg(P){
   for(let i=0;i<PROG;i++){ const b=P[PROG-1-i]; m[i]=MIRROR_SWAP[b]!==undefined?MIRROR_SWAP[b]:b; }
   return m;
 }
-// template-free REPLICATION: fraction of programs that copy a contiguous run of
-// >=FUNC_L of their own bytes (forward OR mirrored) into a FRESH random partner.
-// Catches novel replicators the seed template can't see. Non-destructive.
-function funcCopyRate(soup, react){
-  let rep=0; const cat=new Uint8Array(128);
-  for(let s=0;s<FUNC_SAMPLE;s++){
-    const P=soup[(Math.random()*POP)|0], R=randTape();
-    cat.set(P,0); cat.set(R,64);
-    const grams=new Set(), Pm=mirrorProg(P);
-    for(const src of [P,Pm]) for(let j=0;j+FUNC_L<=PROG;j++){
-      let key=''; for(let m=0;m<FUNC_L;m++) key+=String.fromCharCode(src[j+m]); grams.add(key);
-    }
-    const had=new Set();              // discount runs the random partner already had (≈never)
-    for(let j=0;j+FUNC_L<=PROG;j++){
-      let key=''; for(let m=0;m<FUNC_L;m++) key+=String.fromCharCode(R[j+m]); if(grams.has(key)) had.add(key);
-    }
-    react(cat);
-    let copied=false;
-    for(let j=0;j+FUNC_L<=PROG && !copied;j++){
-      let key=''; for(let m=0;m<FUNC_L;m++) key+=String.fromCharCode(cat[64+j+m]);
-      if(grams.has(key)&&!had.has(key)) copied=true;
-    }
-    if(copied) rep++;
+// template-free REPLICATION test for ONE program: pair it with a FRESH random
+// partner, run the reaction, and report whether a contiguous run of >=FUNC_L of
+// its own bytes (forward OR BF-mirrored) landed in the partner half — i.e. it
+// copied a piece of itself. Catches novel replicators the seed template can't
+// see. Non-destructive (uses a shared scratch tape; never reentrant).
+const _scratch=new Uint8Array(128);
+function selfCopies(P, react){
+  const cat=_scratch, R=randTape();
+  cat.set(P,0); cat.set(R,64);
+  const grams=new Set(), Pm=mirrorProg(P);
+  for(const src of [P,Pm]) for(let j=0;j+FUNC_L<=PROG;j++){
+    let key=''; for(let m=0;m<FUNC_L;m++) key+=String.fromCharCode(src[j+m]); grams.add(key);
   }
+  const had=new Set();                 // discount runs the random partner already had (≈never)
+  for(let j=0;j+FUNC_L<=PROG;j++){
+    let key=''; for(let m=0;m<FUNC_L;m++) key+=String.fromCharCode(R[j+m]); if(grams.has(key)) had.add(key);
+  }
+  react(cat);
+  for(let j=0;j+FUNC_L<=PROG;j++){
+    let key=''; for(let m=0;m<FUNC_L;m++) key+=String.fromCharCode(cat[64+j+m]);
+    if(grams.has(key)&&!had.has(key)) return true;
+  }
+  return false;
+}
+// soup-wide self-copy rate: fraction of a random sample that self-copy
+function funcCopyRate(soup, react){
+  let rep=0; for(let s=0;s<FUNC_SAMPLE;s++) if(selfCopies(soup[(Math.random()*POP)|0], react)) rep++;
   return rep/FUNC_SAMPLE;
+}
+// per-cell self-copy reliability (0..1) over a few trials, for grid coloring
+function cellFunc(P, react){
+  let n=0; for(let k=0;k<FUNC_CELL_TRIALS;k++) if(selfCopies(P, react)) n++;
+  return n/FUNC_CELL_TRIALS;
+}
+function funcColor(f){                  // navy (non-replicator) -> bright green (reliable replicator)
+  return `hsl(${222-71*f},${40+28*f}%,${12+40*f}%)`;
 }
 
 // ---- soup engine (one instance per soup tab) --------------------
 function makeSoup(cfg){
   const ctx=cfg.canvas.getContext('2d');
   const sctx=cfg.spark.getContext('2d');
-  let soup=[], epoch=0, running=false, raf=null, colorMode='sim';
+  let soup=[], epoch=0, running=false, raf=null, colorMode=cfg.color||'sim';
   let entHist=[], funcHist=[], seedHist=[];
 
   function init(){ soup=new Array(POP); for(let i=0;i<POP;i++) soup[i]=randTape(); epoch=0; entHist=[]; funcHist=[]; seedHist=[]; }
@@ -635,6 +650,7 @@ function makeSoup(cfg){
     for(let y=0;y<GRID;y++) for(let x=0;x<GRID;x++){
       const t=soup[y*GRID+x]; let col;
       if(colorMode==='sim') col=simColor(repSim(t));
+      else if(colorMode==='func') col=funcColor(cellFunc(t, cfg.react));
       else { const h=hashTape(t); col=`hsl(${h%360},65%,${30+(h>>9)%35}%)`; }
       ctx.fillStyle=col; ctx.fillRect(x*CELLPX, y*CELLPX, CELLPX-1, CELLPX-1);
     }
@@ -699,6 +715,7 @@ function makeSoup(cfg){
       btn.classList.add('on'); colorMode=btn.dataset.color;
       cfg.scaleSim.classList.toggle('hide',colorMode!=='sim');
       cfg.scaleHash.classList.toggle('hide',colorMode!=='hash');
+      cfg.scaleFunc.classList.toggle('hide',colorMode!=='func');
       draw();
     };
   });
@@ -713,16 +730,16 @@ const soupB = makeSoup({
   run:$('bRun'), pause:$('bPause'), step:$('bStepE'), reset:$('bReset'), seed:$('bSeed'),
   speed:$('bSpeed'), mut:$('bMut'), toggle:$('colorToggle'),
   epoch:$('bEpoch'), rep:$('bRep'), func:$('bFunc'), ent:$('bEnt'), avg:$('bAvg'), uniq:$('bUniq'), clust:$('bClust'),
-  scaleSim:$('scaleSim'), scaleHash:$('scaleHash')
+  scaleSim:$('scaleSim'), scaleHash:$('scaleHash'), scaleFunc:$('scaleFunc')
 });
 
 // C — two IPs on a ring (forward + wrap), shared step cap from the UI
 const soupC = makeSoup({
-  canvas:$('soupC'), spark:$('sparkC'), react:cat=>bffReactTwoIP(cat, Math.max(16, parseInt($('cCap').value)||320)),
+  canvas:$('soupC'), spark:$('sparkC'), color:'func', react:cat=>bffReactTwoIP(cat, Math.max(16, parseInt($('cCap').value)||1024)),
   run:$('cRun'), pause:$('cPause'), step:$('cStepE'), reset:$('cReset'), seed:$('cSeed'),
   speed:$('cSpeed'), mut:$('cMut'), toggle:$('colorToggleC'),
   epoch:$('cEpoch'), rep:$('cRep'), func:$('cFunc'), ent:$('cEnt'), avg:$('cAvg'), uniq:$('cUniq'), clust:$('cClust'),
-  scaleSim:$('scaleSimC'), scaleHash:$('scaleHashC')
+  scaleSim:$('scaleSimC'), scaleHash:$('scaleHashC'), scaleFunc:$('scaleFuncC')
 });
 
 //================================================================
