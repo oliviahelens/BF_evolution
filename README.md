@@ -48,10 +48,10 @@ never catches on, yet novel self-replicators emerge and *persist* (self-copy
 dominant.
 
 Both soups report, beyond the seed-template match (`replicators` / `avg seed
-match`): **entropy** (normalized Shannon entropy of 4-grams across the soup, a
+similarity`): **entropy** (normalized Shannon entropy of 4-grams across the soup, a
 template-free order signal that falls as any motif spreads), **self-copy rate** (a
-template-free, mirror-aware functional test — the fraction of sampled programs that
-copy a ≥12-byte run of themselves into a fresh random partner, which catches novel
+template-free, mirror-aware functional test — the fraction of programs that copy a
+≥12-byte run of themselves into a fresh random partner, which catches novel
 replicators the seed template misses), and a sparkline of these over time.
 
 ### Semantics (faithful to cubff)
