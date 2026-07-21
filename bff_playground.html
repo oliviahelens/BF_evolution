@@ -230,14 +230,18 @@
         each program (positions 0 and 64), each with its own read/write heads. Both move forward and
         <b>wrap</b> past the end, alternating one step at a time, so either program can copy itself into
         the other (order is irrelevant by symmetry). With no “run off the end” to halt them, a reaction
-        ends only at the <b>step cap</b> — the key dial. Seed a replicator and watch the sparkline:
-        <br>• around <b>300–350</b> the <i>seeded</i> palindrome briefly takes over (amber spikes), then is
-        displaced by emergent <i>novel</i> replicators — but this regime is <b>transient</b>: over many
-        thousands of epochs self-copy decays and entropy climbs back toward disorder (the soup peters out);
-        <br>• higher (e.g. <b>1024</b>) the seed never gets a foothold, yet novel replicators emerge and
-        <b>persist</b> — self-copy holds ~85–90% indefinitely (entropy stays high because they stay diverse).
-        <br>So <b>raise the cap to keep replication alive</b> — that is the stable emergent regime. (The
-        single-IP soup, by contrast, locks in the seeded lineage and keeps it.)
+        ends only at the <b>step cap</b>. To see anything, press <b>Seed replicator</b> (drops the
+        palindrome into ~20% of the grid): its self-copying lineage then spreads and the green self-copy
+        rate climbs. Higher step caps give it more room to act, so raising the cap makes the seeded
+        takeover more pronounced.
+        <br><b>Honest caveat on spontaneous emergence.</b> The paper this emulates reports
+        self-replicators arising <i>by chance</i> from an unseeded random soup. That does <b>not</b>
+        reproduce here: started from random noise (no seed), the self-copy rate stays at <b>0%</b> for
+        thousands of epochs — verified offline at this soup size (1,600) and at 6× larger, across step
+        caps and mutation rates. Spontaneous emergence is a rare nucleation event that appears to need
+        the paper's far larger soups (2¹³–2¹⁶ programs) and much longer runs than a browser tab does.
+        So treat this tab as a <i>seeded-replicator</i> demo, not a demonstration of emergence from
+        nothing.
       </p>
       <div class="soupgrid">
         <canvas id="soupC" width="400" height="400"></canvas>

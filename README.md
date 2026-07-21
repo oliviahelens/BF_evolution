@@ -39,13 +39,22 @@ a 128-cell **ring** with **two** instruction pointers — one per program (start
 at positions 0 and 64), each with its own heads. Both run forward and wrap past the
 end, alternating one step at a time, so either program can act on the other (the
 setup is symmetric, so pairing order is irrelevant). With no "run off the end" to
-stop them, reactions end at an adjustable **step cap** (default 1024) — the key
-control. Near 300–350 the seeded palindrome briefly takes over and is then
-displaced by novel replicators, but that regime is *transient* — over many
-thousands of epochs self-copy decays back toward disorder. Higher (≈1024) the seed
-never catches on, yet novel self-replicators emerge and *persist* (self-copy
-~85–90%): the stable emergent regime. Unlike Mode B, no seeded lineage stays
-dominant.
+stop them, reactions end at an adjustable **step cap** (default 1024). Press
+**Seed replicator** to drop the palindrome into ~20% of the grid; its lineage then
+spreads and the self-copy rate climbs, and a higher step cap gives it more room to
+act.
+
+**Spontaneous emergence — honest status.** The paper reports self-replicators
+arising *by chance* from an unseeded random soup. That result does **not**
+reproduce in this tool: from random noise with no seed, the self-copy rate stays
+at **0%** for thousands of epochs. This was verified with a standalone port of the
+soup engine at the tool's soup size (1,600 programs) and at 6× larger, across step
+caps and mutation rates up to 50× the default — always flat at 0%. The port is
+trustworthy: it flags the seeded palindrome replicator at ~98% and random programs
+at 0%. Emergence in the paper appears to require its much larger soups (2¹³–2¹⁶
+programs) and far longer runs than a browser tab practically performs. So this tab
+is a **seeded-replicator demonstrator**, not a demonstration of emergence from
+nothing; investigating whether larger-scale emergence is reachable is open work.
 
 Both soups report, beyond the seed-template match (`replicators` / `avg seed
 similarity`): **entropy** (normalized Shannon entropy of 4-grams across the soup, a
@@ -65,7 +74,9 @@ unmatched bracket, or after 8192 steps.
 - The brief specifies heads start at position 0 of the concatenation. Under those
   semantics the palindrome replicator is genuinely self-replicating (it stamps a
   mirror copy of itself into its partner), which was verified directly.
-- A *single* seeded program dies out stochastically, so **Seed replicator** seeds
-  ~20% of the soup at once. This makes the takeover reliably demonstrable (the
-  brief's stated goal) rather than chance-dependent; replicator coverage then
-  climbs to ~70–90% within a couple hundred epochs.
+- Nothing self-replicating emerges from the random soup on its own at this scale,
+  so both soups rely on seeding to show anything. **Seed replicator** seeds ~20% of
+  the soup at once (a *single* seed dies out stochastically); the seeded lineage
+  then spreads to ~70–90% coverage within a couple hundred epochs. This demonstrates
+  that a self-replicator, once present, takes over — it does **not** demonstrate that
+  one arises by chance (see "Spontaneous emergence" above).
