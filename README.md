@@ -45,16 +45,18 @@ spreads and the self-copy rate climbs, and a higher step cap gives it more room 
 act.
 
 **Spontaneous emergence — honest status.** The paper reports self-replicators
-arising *by chance* from an unseeded random soup. That result does **not**
-reproduce in this tool: from random noise with no seed, the self-copy rate stays
-at **0%** for thousands of epochs. This was verified with a standalone port of the
-soup engine at the tool's soup size (1,600 programs) and at 6× larger, across step
-caps and mutation rates up to 50× the default — always flat at 0%. The port is
-trustworthy: it flags the seeded palindrome replicator at ~98% and random programs
-at 0%. Emergence in the paper appears to require its much larger soups (2¹³–2¹⁶
-programs) and far longer runs than a browser tab practically performs. So this tab
-is a **seeded-replicator demonstrator**, not a demonstration of emergence from
-nothing; investigating whether larger-scale emergence is reachable is open work.
+arising *by chance* from an unseeded random soup. That result does **not** reproduce
+at this tool's scale: from random noise with no seed, the self-copy rate stays at
+**0%** for thousands of epochs at 1,600 programs (and up to 65,536 in single runs).
+It is a matter of **scale**, not a bug — a faithful native port at the paper's
+131,072-program (2¹⁷) scale *does* emerge by chance: 0% → **97% self-copy in ~150
+epochs** around epoch ~3,000, with entropy crashing 0.96 → 0.45. Reproducing the
+per-program mutation rate confirmed it matches the reference `cubff` (≈0.015
+bytes/program/epoch), so mutation is not the missing ingredient — soup size is.
+Emergence at 2¹⁷ takes minutes in optimized C and is out of reach for a live browser
+tab, so this tab remains a **seeded-replicator demonstrator**. See
+[`EMERGENCE_INVESTIGATION.md`](EMERGENCE_INVESTIGATION.md) for the full write-up and
+[`tools/bff_soup.c`](tools/bff_soup.c) to run the emergence experiment yourself.
 
 Both soups report, beyond the seed-template match (`replicators` / `avg seed
 similarity`): **entropy** (normalized Shannon entropy of 4-grams across the soup, a
