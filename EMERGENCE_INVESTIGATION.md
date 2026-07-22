@@ -97,29 +97,33 @@ cubff mutation 1/4096; raw traces in `tools/results/`) shows the transition is
 **not a sharp deterministic size threshold** — it is a stochastic nucleation event
 whose rate rises steeply with soup size.
 
-| Soup size | seeds | emerged | max epochs | detail |
+| Soup size | seeds | emerged | budgets | onset epochs |
 |---|---|---|---|---|
-| 131,072 (2¹⁷) | 3 | **2 of 3** | 20,000 | seed1 @3,150, seed3 @2,925; **seed2 never emerged in 20,000** |
-| 98,304 | 1 | 0 of 1 | 12,000 | — |
-| 65,536 (2¹⁶) | 2 | 0 of 2 | 20,000 | — |
-| 32,768 (2¹⁵) | 1 | 0 of 1 | 30,000 | — |
-| ≤9,216 | many | 0 | — | earlier JS + C runs |
+| 131,072 (2¹⁷) | 7 | **3 of 7** | 8k–20k | 1,250 / 2,925 / 3,150 |
+| 98,304 | 3 | 0 of 3 | 12k–20k | — |
+| 65,536 (2¹⁶) | 3 | **1 of 3** | 20k–40k | 1,400 |
+| 32,768 (2¹⁵) | 1 | 0 of 1 | 30k | — |
+| ≤9,216 | many | 0 | — | — |
 
-Two things stand out:
+Three things stand out:
 
-1. **Even at 2¹⁷, emergence is not guaranteed.** Two seeds nucleated by ~epoch
-   3,000; a third ran a full 20,000 epochs (>6× the others' onset) and never fired.
-   So "2¹⁷ emerges around epoch 3,000" is really "2¹⁷ has a per-epoch nucleation
-   probability high enough to usually fire within a few thousand epochs — but not
-   always."
-2. **Below ~10⁵ programs, no emergence was observed** in runs of 12k–30k epochs.
-   With single/double seeds this does not *prove* those sizes can never emerge — the
-   nucleation rate is simply low enough that none fired in the budget tested. The
-   expected time-to-emergence grows rapidly as the soup shrinks.
+1. **Even at 2¹⁷, emergence is not guaranteed** — only 3 of 7 seeds nucleated;
+   others ran 8k–20k epochs without firing. So "2¹⁷ emerges around epoch 3,000" is
+   really "2¹⁷ has a per-epoch nucleation probability high enough to fire within a
+   few thousand epochs in roughly half of runs."
+2. **There is no hard cutoff at 2¹⁷.** A 65,536-program soup (2¹⁶) also emerged
+   (1 of 3 seeds, @epoch 1,400) — just at a lower rate. Emergence probability rises
+   with size continuously; it does not switch on at a single size.
+3. **When it does fire, onset is fast and roughly size-independent** (~1,250–3,150
+   epochs across 2¹⁶ and 2¹⁷). It is the *probability* of nucleation that scales
+   with soup size, not the time-once-nucleated. Below ~2¹⁶ the rate is low enough
+   that nothing fired in the budgets tested (small samples — this bounds the rate,
+   it does not prove impossibility).
 
-This reframes the "critical size": there is no hard cutoff, but the emergence rate
-becomes practically observable somewhere near **10⁵ programs**, which is why cubff's
-default is 131,072 and why the web tool's 1,600 never shows it.
+So the "critical size" is a **rate**, not a threshold: emergence becomes reliably
+observable (roughly half of runs within a few thousand epochs) near **10⁵ programs**
+— which is why cubff defaults to 131,072 and why the web tool's 1,600 never shows
+it.
 
 ### Interpreter sanity check (why the soup never freezes)
 
