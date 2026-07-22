@@ -90,6 +90,56 @@ utterly out of reach at the web tool's 1,600. Reproducibility across more 2¹⁷
 and longer runs at 32k–65k are the remaining loose ends (compute was repeatedly
 interrupted by container restarts).
 
+## Follow-up: emergence is stochastic, and the "threshold" is a rate
+
+A reproducibility + threshold sweep (restart-resilient `tools/bff2.c`, unseeded,
+cubff mutation 1/4096; raw traces in `tools/results/`) shows the transition is
+**not a sharp deterministic size threshold** — it is a stochastic nucleation event
+whose rate rises steeply with soup size.
+
+| Soup size | seeds | emerged | max epochs | detail |
+|---|---|---|---|---|
+| 131,072 (2¹⁷) | 3 | **2 of 3** | 20,000 | seed1 @3,150, seed3 @2,925; **seed2 never emerged in 20,000** |
+| 98,304 | 1 | 0 of 1 | 12,000 | — |
+| 65,536 (2¹⁶) | 2 | 0 of 2 | 20,000 | — |
+| 32,768 (2¹⁵) | 1 | 0 of 1 | 30,000 | — |
+| ≤9,216 | many | 0 | — | earlier JS + C runs |
+
+Two things stand out:
+
+1. **Even at 2¹⁷, emergence is not guaranteed.** Two seeds nucleated by ~epoch
+   3,000; a third ran a full 20,000 epochs (>6× the others' onset) and never fired.
+   So "2¹⁷ emerges around epoch 3,000" is really "2¹⁷ has a per-epoch nucleation
+   probability high enough to usually fire within a few thousand epochs — but not
+   always."
+2. **Below ~10⁵ programs, no emergence was observed** in runs of 12k–30k epochs.
+   With single/double seeds this does not *prove* those sizes can never emerge — the
+   nucleation rate is simply low enough that none fired in the budget tested. The
+   expected time-to-emergence grows rapidly as the soup shrinks.
+
+This reframes the "critical size": there is no hard cutoff, but the emergence rate
+becomes practically observable somewhere near **10⁵ programs**, which is why cubff's
+default is 131,072 and why the web tool's 1,600 never shows it.
+
+### Interpreter sanity check (why the soup never freezes)
+
+Instrumenting the interpreter (`tools/probe.c`) over 20,000 reactions confirmed the
+BFF engine runs correctly and explained the dynamics:
+
+| soup | avg steps | ran off tape | unmatched bracket | hit 8,192-step cap (looping) |
+|---|---|---|---|---|
+| random (pre-life) | 617 | 61% | 33% | **6%** |
+| emerged (92% self-copy) | 7,443 | 9% | 1% | **90%** |
+
+Random code almost never forms a working loop (6% reach the step cap), so the
+pre-life soup churns through short executions rather than settling. After emergence,
+90% of programs are in productive copy-loops (~7,400 of 8,192 steps). The soup still
+never freezes because the step cap force-terminates every loop, programs re-pair
+each epoch, and mutation + partner-overwriting continuously perturb the population —
+so self-copy oscillates in a live steady state rather than locking at 100%.
+Replication itself was verified directly: the palindrome replicator stamps a copy of
+itself into a fresh random partner in 3,000/3,000 trials; random programs, 0.
+
 ## Recommendation for the tool
 
 Live in-browser emergence at 2¹⁷ is not feasible (JS single-threaded would take
